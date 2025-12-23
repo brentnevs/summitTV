@@ -9,7 +9,7 @@
             --summit-navy: #122442; 
             --summit-green: #76b72a;
             --sidebar-width: 25vw;
-            --topbar-height: 25vh; /* Larger top bar for a massive logo */
+            --topbar-height: 15vh; /* Reduced from 25vh to shrink white edges */
             --bg-color: #ffffff;
         }
 
@@ -22,7 +22,6 @@
             background-color: #ffffff;
         }
 
-        /* L-Shaped Layout */
         .container {
             display: grid;
             grid-template-columns: var(--sidebar-width) 1fr;
@@ -32,27 +31,28 @@
             transition: opacity 1s ease-in-out;
         }
 
-        /* --- TOP BAR: Massive Centered Logo --- */
+        /* --- TOP BAR: Massive Logo, Tight Edges --- */
         .top-bar {
             grid-column: 1 / span 2;
             background-color: var(--bg-color);
             display: flex;
             align-items: center;
             justify-content: center;
-            border-bottom: 8px solid var(--summit-green);
+            padding: 5px 0; /* Minimal padding to reduce white space further */
+            border-bottom: 6px solid var(--summit-green);
             z-index: 10;
         }
 
         .top-bar img {
-            height: 95%; /* Fills nearly the entire bar */
+            height: 95%; /* Fills the height of the bar almost completely */
             width: auto;
             object-fit: contain;
         }
 
-        /* --- SIDEBAR: Smooth Transitions --- */
+        /* --- SIDEBAR --- */
         .sidebar {
             background-color: var(--bg-color);
-            padding: 40px 30px;
+            padding: 30px 25px;
             border-right: 6px solid var(--summit-navy);
             display: flex;
             flex-direction: column;
@@ -60,24 +60,24 @@
         }
 
         .sidebar h2 { 
-            font-size: 1.8rem; 
+            font-size: 1.6rem; 
             color: var(--summit-navy);
             margin-top: 0;
             text-transform: uppercase;
             border-bottom: 4px solid var(--summit-green);
-            padding-bottom: 15px;
-            margin-bottom: 50px;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
         }
 
         .info-item {
-            font-size: 2.4rem;
+            font-size: 2.2rem;
             color: var(--summit-navy);
             line-height: 1.4;
             font-weight: 600;
             position: absolute;
-            top: 180px; /* Positioned below header */
-            left: 30px;
-            right: 30px;
+            top: 130px; /* Adjusted for smaller top bar */
+            left: 25px;
+            right: 25px;
             opacity: 0;
             transition: opacity 1s ease-in-out;
             border-left: 10px solid var(--summit-green);
@@ -113,9 +113,9 @@
         }
 
         #welcome-overlay h1 {
-            font-size: 5rem;
+            font-size: 4rem;
             color: var(--summit-navy);
-            margin-bottom: 40px;
+            margin-bottom: 30px;
             font-weight: 300;
         }
 
@@ -153,20 +153,19 @@
 
     <script>
         const settings = {
-            rotationSpeed: 7000,    // Info swaps every 7 seconds
-            welcomeInterval: 600000, // 10 minutes
-            welcomeDuration: 10000,  // Show welcome for 10 seconds
+            rotationSpeed: 7000,    
+            welcomeInterval: 600000, 
+            welcomeDuration: 10000,  
             infoItems: [
                 "Summit Performance Rehab & Wellness Centre",
                 "WiFi: Summit_Guest",
-                "New: Advanced physical therapy sessions now available.",
                 "Please check in with reception upon arrival.",
-                "Visit our website: summitrehab.ca",
-                "Recovery is the key to peak performance."
+                "Recover. Perform. Succeed.",
+                "Follow us for more health & wellness tips!",
+                "Please silence your mobile devices."
             ]
         };
 
-        // --- Info Rotation Logic ---
         const container = document.getElementById('info-container');
         settings.infoItems.forEach((text, index) => {
             const div = document.createElement('div');
@@ -184,17 +183,12 @@
             items[currentIndex].classList.add('active');
         }, settings.rotationSpeed);
 
-        // --- 10-Minute Welcome Logic ---
         const overlay = document.getElementById('welcome-overlay');
-
         setInterval(() => {
             overlay.classList.add('show');
-            
-            // Hide it again after 10 seconds
             setTimeout(() => {
                 overlay.classList.remove('show');
             }, settings.welcomeDuration);
-            
         }, settings.welcomeInterval);
     </script>
 </body>
