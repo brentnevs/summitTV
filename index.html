@@ -9,7 +9,7 @@
             --summit-navy: #122442; 
             --summit-green: #76b72a;
             --sidebar-width: 25vw;
-            --topbar-height: 25vh; /* Increased to 25% of the total screen height */
+            --topbar-height: 15vh; /* Squeezed height */
             --bg-color: #ffffff;
         }
 
@@ -30,24 +30,26 @@
             width: 100vw;
         }
 
-        /* --- TOP BAR: Massive Logo Display --- */
+        /* --- TOP BAR: Squeezed bar with Overflowing Logo --- */
         .top-bar {
             grid-column: 1 / span 2;
             background-color: var(--bg-color);
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 0;
-            border-bottom: 10px solid var(--summit-green); /* Thicker green line for balance */
-            z-index: 10;
-            overflow: hidden;
+            border-bottom: 8px solid var(--summit-green);
+            z-index: 20; /* Ensures logo sits on top of everything */
+            position: relative;
         }
 
         .top-bar img {
-            height: 100%; /* Occupies the full 25vh height */
-            width: 95vw; /* Allows it to expand horizontally as well */
+            height: 160%; /* Logo is 60% larger than the bar itself */
+            width: auto;
             object-fit: contain;
-            transform: scale(1.1); /* Slight zoom to eliminate any white margins */
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%); /* Centers the massive logo vertically */
+            filter: drop-shadow(0px 4px 10px rgba(0,0,0,0.1)); /* Adds depth since it overlaps */
         }
 
         /* --- SIDEBAR --- */
@@ -58,12 +60,13 @@
             display: flex;
             flex-direction: column;
             position: relative;
+            z-index: 10;
         }
 
         .sidebar h2 { 
             font-size: 1.8rem; 
             color: var(--summit-navy);
-            margin-top: 0;
+            margin-top: 20px; /* Space for the overflowing logo */
             text-transform: uppercase;
             border-bottom: 5px solid var(--summit-green);
             padding-bottom: 12px;
@@ -76,7 +79,7 @@
             line-height: 1.4;
             font-weight: 600;
             position: absolute;
-            top: 180px; /* Adjusted for the massive header */
+            top: 180px;
             left: 30px;
             right: 30px;
             opacity: 0;
@@ -115,7 +118,7 @@
             display: block;
         }
 
-        .video-content { background-color: #000; position: relative; }
+        .video-content { background-color: #000; position: relative; z-index: 5; }
         iframe { width: 100%; height: 100%; border: none; }
 
         /* --- WELCOME OVERLAY --- */
@@ -174,31 +177,26 @@
     <script>
         const settings = {
             rotationSpeed: 8000,    
-            welcomeInterval: 600000, // 10 minutes
-            welcomeDuration: 10000,  // 10 seconds
+            welcomeInterval: 600000, 
+            welcomeDuration: 10000,  
             infoItems: [
                 "Summit Performance Rehab & Wellness Centre",
                 "WiFi: Summit_Guest",
                 "Professional Recovery & Performance.",
                 "Please check in at the front desk.",
-                "New Sessions: Ask about advanced therapy.",
+                "Recover. Perform. Succeed.",
                 "Please silence all mobile devices."
             ]
         };
 
-        // Clock Logic
         function updateClock() {
             const now = new Date();
-            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-            const dateStr = now.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
-            
-            document.getElementById('time').innerText = timeStr;
-            document.getElementById('date').innerText = dateStr;
+            document.getElementById('time').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+            document.getElementById('date').innerText = now.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
         }
         setInterval(updateClock, 1000);
         updateClock();
 
-        // Info Rotation
         const container = document.getElementById('info-container');
         settings.infoItems.forEach((text, index) => {
             const div = document.createElement('div');
@@ -215,7 +213,6 @@
             items[currentIndex].classList.add('active');
         }, settings.rotationSpeed);
 
-        // Welcome Trigger
         const overlay = document.getElementById('welcome-overlay');
         setInterval(() => {
             overlay.classList.add('show');
