@@ -9,7 +9,7 @@
             --summit-navy: #122442; 
             --summit-green: #76b72a;
             --sidebar-width: 25vw;
-            --topbar-height: 22vh; /* Increased height for an even bigger logo */
+            --topbar-height: 25vh; /* Larger top bar for a massive logo */
             --bg-color: #ffffff;
         }
 
@@ -19,95 +19,128 @@
             height: 100%;
             overflow: hidden;
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            background-color: #000;
+            background-color: #ffffff;
         }
 
+        /* L-Shaped Layout */
         .container {
             display: grid;
             grid-template-columns: var(--sidebar-width) 1fr;
             grid-template-rows: var(--topbar-height) 1fr;
             height: 100vh;
             width: 100vw;
+            transition: opacity 1s ease-in-out;
         }
 
-        /* --- TOP BAR: Centered & Massive Logo --- */
+        /* --- TOP BAR: Massive Centered Logo --- */
         .top-bar {
             grid-column: 1 / span 2;
             background-color: var(--bg-color);
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 10px;
             border-bottom: 8px solid var(--summit-green);
             z-index: 10;
         }
 
         .top-bar img {
-            height: 90%; /* Maximized size */
+            height: 95%; /* Fills nearly the entire bar */
             width: auto;
             object-fit: contain;
         }
 
-        /* --- SIDEBAR: White background with transitions --- */
+        /* --- SIDEBAR: Smooth Transitions --- */
         .sidebar {
             background-color: var(--bg-color);
             padding: 40px 30px;
             border-right: 6px solid var(--summit-navy);
             display: flex;
             flex-direction: column;
-            justify-content: flex-start;
             position: relative;
         }
 
         .sidebar h2 { 
-            font-size: 1.6rem; 
+            font-size: 1.8rem; 
             color: var(--summit-navy);
             margin-top: 0;
             text-transform: uppercase;
-            border-bottom: 3px solid var(--summit-green);
+            border-bottom: 4px solid var(--summit-green);
             padding-bottom: 15px;
-            margin-bottom: 40px;
-        }
-
-        /* Transition Area */
-        #info-container {
-            position: relative;
-            flex-grow: 1;
+            margin-bottom: 50px;
         }
 
         .info-item {
-            font-size: 2.2rem; /* Large font for better visibility */
+            font-size: 2.4rem;
             color: var(--summit-navy);
             line-height: 1.4;
             font-weight: 600;
             position: absolute;
-            top: 0;
-            left: 0;
+            top: 180px; /* Positioned below header */
+            left: 30px;
+            right: 30px;
             opacity: 0;
-            transition: opacity 1.5s ease-in-out; /* Smooth fade speed */
-            border-left: 8px solid var(--summit-green);
+            transition: opacity 1s ease-in-out;
+            border-left: 10px solid var(--summit-green);
             padding-left: 20px;
         }
 
-        .info-item.active {
-            opacity: 1;
-        }
+        .info-item.active { opacity: 1; }
 
         .video-content { background-color: #000; position: relative; }
         iframe { width: 100%; height: 100%; border: none; }
+
+        /* --- 10-MINUTE WELCOME OVERLAY --- */
+        #welcome-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 1.5s ease-in-out;
+        }
+
+        #welcome-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        #welcome-overlay h1 {
+            font-size: 5rem;
+            color: var(--summit-navy);
+            margin-bottom: 40px;
+            font-weight: 300;
+        }
+
+        #welcome-overlay img {
+            width: 70%;
+            max-height: 60vh;
+            object-fit: contain;
+        }
     </style>
 </head>
 <body>
 
-    <div class="container">
+    <div id="welcome-overlay">
+        <h1>Welcome to</h1>
+        <img src="summitlogo.png" alt="Summit Logo">
+    </div>
+
+    <div class="container" id="main-ui">
         <div class="top-bar">
             <img src="summitlogo.png" alt="Summit Logo">
         </div>
 
         <div class="sidebar">
             <h2>Information</h2>
-            <div id="info-container">
-                </div>
+            <div id="info-container"></div>
         </div>
 
         <div class="video-content">
@@ -120,20 +153,21 @@
 
     <script>
         const settings = {
-            rotationSpeed: 6000, // 6 seconds per message
+            rotationSpeed: 7000,    // Info swaps every 7 seconds
+            welcomeInterval: 600000, // 10 minutes
+            welcomeDuration: 10000,  // Show welcome for 10 seconds
             infoItems: [
-                "Welcome to Summit Performance Rehab & Wellness Centre",
+                "Summit Performance Rehab & Wellness Centre",
                 "WiFi: Summit_Guest",
-                "Please check in at the front desk upon arrival.",
-                "New: Ask us about our advanced recovery sessions!",
-                "Check out our website at summitrehab.ca",
-                "Please silence your mobile devices."
+                "New: Advanced physical therapy sessions now available.",
+                "Please check in with reception upon arrival.",
+                "Visit our website: summitrehab.ca",
+                "Recovery is the key to peak performance."
             ]
         };
 
+        // --- Info Rotation Logic ---
         const container = document.getElementById('info-container');
-        
-        // Create the elements
         settings.infoItems.forEach((text, index) => {
             const div = document.createElement('div');
             div.className = 'info-item' + (index === 0 ? ' active' : '');
@@ -141,7 +175,6 @@
             container.appendChild(div);
         });
 
-        // Rotation Logic
         let currentIndex = 0;
         const items = document.querySelectorAll('.info-item');
 
@@ -150,6 +183,19 @@
             currentIndex = (currentIndex + 1) % items.length;
             items[currentIndex].classList.add('active');
         }, settings.rotationSpeed);
+
+        // --- 10-Minute Welcome Logic ---
+        const overlay = document.getElementById('welcome-overlay');
+
+        setInterval(() => {
+            overlay.classList.add('show');
+            
+            // Hide it again after 10 seconds
+            setTimeout(() => {
+                overlay.classList.remove('show');
+            }, settings.welcomeDuration);
+            
+        }, settings.welcomeInterval);
     </script>
 </body>
 </html>
