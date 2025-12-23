@@ -30,7 +30,7 @@
             width: 100vw;
         }
 
-        /* --- TOP BAR --- */
+        /* --- TOP BAR: Logo is 20% bigger than the 20vh bar --- */
         .top-bar {
             grid-column: 1 / span 2;
             background-color: var(--bg-color);
@@ -104,6 +104,7 @@
             font-weight: 800;
             color: var(--summit-navy);
             display: block;
+            line-height: 1;
         }
 
         #date {
@@ -112,16 +113,21 @@
             text-transform: uppercase;
             font-weight: 700;
             letter-spacing: 2px;
+            margin-top: 5px;
+            display: block;
         }
 
+        /* --- VIDEO CONTENT --- */
         .video-content { background-color: #000; position: relative; }
         iframe { width: 100%; height: 100%; border: none; }
 
-        /* --- WELCOME OVERLAY --- */
+        /* --- WELCOME OVERLAY: Capitalized, Bigger, and Higher --- */
         #welcome-overlay {
             position: fixed;
-            top: 0; left: 0;
-            width: 100vw; height: 100vh;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
             background-color: white;
             display: flex;
             flex-direction: column;
@@ -131,19 +137,21 @@
             opacity: 0;
             visibility: hidden;
             transition: opacity 1.5s ease-in-out;
-            padding-bottom: 12vh; 
+            padding-bottom: 12vh; /* Shifts everything up */
         }
 
         #welcome-overlay.show { opacity: 1; visibility: visible; }
+
         #welcome-overlay h1 { 
             font-size: 5.5rem; 
             color: var(--summit-navy); 
             margin-bottom: 25px; 
-            text-transform: uppercase;
+            text-transform: uppercase; /* Forces Caps */
             letter-spacing: 4px;
         }
+
         #welcome-overlay img { 
-            width: 95%; 
+            width: 95%; /* Maximum logo size */
             max-height: 85vh; 
             object-fit: contain; 
         }
@@ -173,7 +181,7 @@
 
         <div class="video-content">
             <iframe 
-                src="https://www.youtube.com/embed/videoseries?list=PLoXrf5exDo_qjKr7mbyyacKxD0zC57ej7&autoplay=1&mute=1&loop=1&playlist=YOUR_ID_HERE" 
+                src="https://www.youtube.com/embed/videoseries?list=PLoXrf5exDo_qjKr7mbyyacKxD0zC57ej7&autoplay=1&mute=1&loop=1&playlist=PLoXrf5exDo_qjKr7mbyyacKxD0zC57ej7" 
                 allow="autoplay; encrypted-media" 
                 allowfullscreen>
             </iframe>
