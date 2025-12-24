@@ -14,145 +14,93 @@
         }
 
         body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            overflow: hidden;
+            margin: 0; padding: 0; height: 100%; overflow: hidden;
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             background-color: #ffffff;
         }
 
-        /* --- START OVERLAY (Fixes Black Screen) --- */
+        /* --- START OVERLAY --- */
         #start-overlay {
             position: fixed;
             top: 0; left: 0; width: 100vw; height: 100vh;
             background: var(--summit-navy);
             z-index: 100000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             cursor: pointer;
         }
         #start-btn {
-            padding: 20px 40px;
-            font-size: 2rem;
-            background: var(--summit-green);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-weight: bold;
-            text-transform: uppercase;
+            padding: 25px 50px; font-size: 2.2rem;
+            background: var(--summit-green); color: white;
+            border: none; border-radius: 15px; font-weight: bold;
+            text-transform: uppercase; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
 
         .container {
             display: grid;
             grid-template-columns: var(--sidebar-width) 1fr;
             grid-template-rows: var(--topbar-height) 1fr;
-            height: 100vh;
-            width: 100vw;
+            height: 100vh; width: 100vw;
         }
 
         .top-bar {
             grid-column: 1 / span 2;
             background-color: var(--bg-color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             border-bottom: 8px solid var(--summit-green);
             z-index: 20;
         }
 
-        .top-bar img {
-            height: 100%;
-            width: auto;
-            object-fit: contain;
-            transform: scale(1.2); 
-        }
+        .top-bar img { height: 100%; width: auto; object-fit: contain; transform: scale(1.2); }
 
         .sidebar {
             background-color: var(--bg-color);
-            padding: 40px 30px;
-            border-right: 8px solid var(--summit-navy);
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            z-index: 10;
+            padding: 40px 30px; border-right: 8px solid var(--summit-navy);
+            display: flex; flex-direction: column; position: relative; z-index: 10;
         }
 
         .sidebar h2 { 
-            font-size: 1.8rem; 
-            color: var(--summit-navy);
-            text-transform: uppercase;
-            border-bottom: 5px solid var(--summit-green);
-            padding-bottom: 12px;
-            margin-bottom: 40px;
+            font-size: 1.8rem; color: var(--summit-navy); text-transform: uppercase;
+            border-bottom: 5px solid var(--summit-green); padding-bottom: 12px; margin-bottom: 40px;
         }
 
         .info-item {
-            font-size: 2.4rem;
-            color: var(--summit-navy);
-            line-height: 1.4;
-            font-weight: 600;
-            position: absolute;
-            top: 160px;
-            left: 30px;
-            right: 30px;
-            opacity: 0;
-            transition: opacity 1s ease-in-out;
-            border-left: 12px solid var(--summit-green);
-            padding-left: 25px;
+            font-size: 2.4rem; color: var(--summit-navy); line-height: 1.4; font-weight: 600;
+            position: absolute; top: 160px; left: 30px; right: 30px;
+            opacity: 0; transition: opacity 1s ease-in-out;
+            border-left: 12px solid var(--summit-green); padding-left: 25px;
         }
 
         .info-item.active { opacity: 1; }
 
         #clock-container {
-            position: absolute;
-            bottom: 40px;
-            left: 30px;
-            width: 85%;
-            border-top: 5px solid var(--summit-navy);
-            padding-top: 15px;
+            position: absolute; bottom: 40px; left: 30px; width: 85%;
+            border-top: 5px solid var(--summit-navy); padding-top: 15px;
         }
 
         #time { font-size: 3.5rem; font-weight: 800; color: var(--summit-navy); display: block; }
         #date { font-size: 1.3rem; color: var(--summit-green); text-transform: uppercase; font-weight: 700; letter-spacing: 2px; }
 
-        .video-content { background-color: #000; position: relative; }
-        #player { width: 100%; height: 100%; border: none; }
+        .video-content { background-color: #000; position: relative; overflow: hidden; }
+        #player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 
         /* --- WELCOME OVERLAY --- */
         #welcome-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            background-color: white;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 99999; 
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 1.5s ease-in-out;
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: white; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 99999; 
+            opacity: 0; visibility: hidden; transition: opacity 1.5s ease-in-out;
             padding-bottom: 12vh; 
         }
 
         #welcome-overlay.show { opacity: 1; visibility: visible; }
 
         #welcome-overlay h1 { 
-            font-size: 5.5rem; 
-            color: var(--summit-navy); 
-            margin-bottom: 10px; 
-            text-transform: uppercase; 
-            letter-spacing: 4px;
-            position: relative;
-            top: 50px; /* Lowers text as requested */
+            font-size: 5.5rem; color: var(--summit-navy); margin-bottom: 10px; 
+            text-transform: uppercase; letter-spacing: 4px;
+            position: relative; top: 50px; /* Text lowered */
         }
 
-        #welcome-overlay img { 
-            width: 95%; 
-            max-height: 90vh; 
-            object-fit: contain; 
-        }
+        #welcome-overlay img { width: 95%; max-height: 90vh; object-fit: contain; }
     </style>
 </head>
 <body>
@@ -174,7 +122,6 @@
         <div class="sidebar">
             <h2>Information</h2>
             <div id="info-container"></div>
-            
             <div id="clock-container">
                 <span id="time"></span>
                 <span id="date"></span>
@@ -191,51 +138,63 @@
     <script>
         const settings = {
             rotationSpeed: 8000,    
-            welcomeInterval: 600000, // 10 minutes
-            welcomeDuration: 15000,  // 15 seconds
+            welcomeInterval: 600000, 
+            welcomeDuration: 15000,  
             playlistId: 'PLoXrf5exDo_qjKr7mbyyacKxD0zC57ej7',
             infoItems: [
                 "Summit Performance Rehab & Wellness Centre",
                 "Please check in at the front desk.",
                 "Reach Your Health Summit Here",
                 "Transforming Lives Through Hands-On Care",
-                "Follow us on Instagram! @summit_ performance_ rehab"
+                "Follow us on Instagram! @summit_performance_rehab"
             ]
         };
 
         let player;
+        let apiReady = false;
+
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
                 height: '100%',
                 width: '100%',
                 playerVars: {
-                    'listType': 'playlist',
-                    'list': settings.playlistId,
-                    'autoplay': 1,
-                    'mute': 0, // Unmuted
-                    'loop': 1,
-                    'cc_load_policy': 1 // Captions on
+                    'autoplay': 0, // Wait for button
+                    'mute': 0,
+                    'controls': 0,
+                    'modestbranding': 1,
+                    'rel': 0,
+                    'cc_load_policy': 1,
+                    'origin': window.location.origin // Crucial security fix
                 },
                 events: {
-                    'onReady': onPlayerReady
+                    'onReady': () => { apiReady = true; }
                 }
             });
         }
 
-        function onPlayerReady(event) {
-            // This prepares the shuffle but doesn't play until the button is clicked
-            event.target.setShuffle(true);
-        }
-
         function startDisplay() {
-            // Hide the start button
+            if (!apiReady) {
+                alert("YouTube is still loading, please wait a second and try again.");
+                return;
+            }
+
             document.getElementById('start-overlay').style.display = 'none';
             
-            // Start Video, Shuffle, and Welcome loop
-            if (player && player.playVideo) {
+            // Force load the playlist and shuffle immediately
+            player.loadPlaylist({
+                list: settings.playlistId,
+                listType: 'playlist',
+                index: 0,
+                suggestedQuality: 'hd1080'
+            });
+
+            // Delay shuffle by a half second to ensure playlist is loaded
+            setTimeout(() => {
                 player.setShuffle(true);
+                player.setLoop(true);
                 player.playVideo();
-            }
+            }, 500);
+
             triggerWelcome();
         }
 
@@ -260,9 +219,11 @@
         let currentIndex = 0;
         const items = document.querySelectorAll('.info-item');
         setInterval(() => {
-            items[currentIndex].classList.remove('active');
-            currentIndex = (currentIndex + 1) % items.length;
-            items[currentIndex].classList.add('active');
+            if(items.length > 0) {
+                items[currentIndex].classList.remove('active');
+                currentIndex = (currentIndex + 1) % items.length;
+                items[currentIndex].classList.add('active');
+            }
         }, settings.rotationSpeed);
 
         // --- Welcome Overlay Logic ---
@@ -272,7 +233,6 @@
             setTimeout(() => { overlay.classList.remove('show'); }, settings.welcomeDuration);
         }
 
-        // The interval for every 10 minutes
         setInterval(triggerWelcome, settings.welcomeInterval);
     </script>
 </body>
