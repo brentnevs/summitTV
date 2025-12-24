@@ -19,20 +19,16 @@
             background-color: #ffffff;
         }
 
-        /* --- START OVERLAY --- */
+        /* --- START BUTTON (Required for Shuffle & Sound) --- */
         #start-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            background: var(--summit-navy);
-            z-index: 100000;
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: var(--summit-navy); z-index: 100000;
             display: flex; align-items: center; justify-content: center;
-            cursor: pointer;
         }
         #start-btn {
-            padding: 25px 50px; font-size: 2.2rem;
-            background: var(--summit-green); color: white;
-            border: none; border-radius: 15px; font-weight: bold;
-            text-transform: uppercase; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            padding: 25px 50px; font-size: 2rem; background: var(--summit-green);
+            color: white; border: none; border-radius: 10px; font-weight: bold;
+            cursor: pointer; text-transform: uppercase;
         }
 
         .container {
@@ -80,8 +76,8 @@
         #time { font-size: 3.5rem; font-weight: 800; color: var(--summit-navy); display: block; }
         #date { font-size: 1.3rem; color: var(--summit-green); text-transform: uppercase; font-weight: 700; letter-spacing: 2px; }
 
-        .video-content { background-color: #000; position: relative; overflow: hidden; }
-        #player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .video-content { background-color: #000; position: relative; }
+        #player { width: 100%; height: 100%; border: none; }
 
         /* --- WELCOME OVERLAY --- */
         #welcome-overlay {
@@ -97,7 +93,7 @@
         #welcome-overlay h1 { 
             font-size: 5.5rem; color: var(--summit-navy); margin-bottom: 10px; 
             text-transform: uppercase; letter-spacing: 4px;
-            position: relative; top: 50px; /* Text lowered */
+            position: relative; top: 50px; /* Moves text down as requested */
         }
 
         #welcome-overlay img { width: 95%; max-height: 90vh; object-fit: contain; }
@@ -105,8 +101,8 @@
 </head>
 <body>
 
-    <div id="start-overlay" onclick="startDisplay()">
-        <button id="start-btn">Click to Start Summit Display</button>
+    <div id="start-overlay">
+        <button id="start-btn" onclick="initDisplay()">Start Summit Display</button>
     </div>
 
     <div id="welcome-overlay">
@@ -114,11 +110,10 @@
         <img src="summitlogo.png" alt="Summit Logo">
     </div>
 
-    <div class="container" id="main-ui">
+    <div class="container">
         <div class="top-bar">
             <img src="summitlogo.png" alt="Summit Logo">
         </div>
-
         <div class="sidebar">
             <h2>Information</h2>
             <div id="info-container"></div>
@@ -127,7 +122,6 @@
                 <span id="date"></span>
             </div>
         </div>
-
         <div class="video-content">
             <div id="player"></div>
         </div>
@@ -151,54 +145,41 @@
         };
 
         let player;
-        let apiReady = false;
 
+        // 1. Setup the Player
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
-                height: '100%',
-                width: '100%',
                 playerVars: {
-                    'autoplay': 0, // Wait for button
+                    'listType': 'playlist',
+                    'list': settings.playlistId,
+                    'autoplay': 0,
                     'mute': 0,
-                    'controls': 0,
-                    'modestbranding': 1,
-                    'rel': 0,
-                    'cc_load_policy': 1,
-                    'origin': window.location.origin // Crucial security fix
+                    'cc_load_policy': 1
                 },
                 events: {
-                    'onReady': () => { apiReady = true; }
+                    'onReady': onPlayerReady
                 }
             });
         }
 
-        function startDisplay() {
-            if (!apiReady) {
-                alert("YouTube is still loading, please wait a second and try again.");
-                return;
-            }
+        function onPlayerReady(event) {
+            // Player is loaded but waiting for the button click
+        }
 
+        // 2. The "Magic" Shuffle Function
+        function initDisplay() {
             document.getElementById('start-overlay').style.display = 'none';
             
-            // Force load the playlist and shuffle immediately
-            player.loadPlaylist({
-                list: settings.playlistId,
-                listType: 'playlist',
-                index: 0,
-                suggestedQuality: 'hd1080'
-            });
-
-            // Delay shuffle by a half second to ensure playlist is loaded
-            setTimeout(() => {
-                player.setShuffle(true);
-                player.setLoop(true);
-                player.playVideo();
-            }, 500);
-
+            if (player) {
+                player.setShuffle(true);      // Shuffles the list
+                player.playVideoAt(0);        // Starts at a random first video
+                player.setLoop(true);         // Keeps it going forever
+            }
+            
             triggerWelcome();
         }
 
-        // --- Clock Logic ---
+        // --- Clock & Sidebar Logic (Remains the same) ---
         function updateClock() {
             const now = new Date();
             document.getElementById('time').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -207,7 +188,6 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // --- Sidebar Rotation ---
         const container = document.getElementById('info-container');
         settings.infoItems.forEach((text, index) => {
             const div = document.createElement('div');
@@ -219,20 +199,16 @@
         let currentIndex = 0;
         const items = document.querySelectorAll('.info-item');
         setInterval(() => {
-            if(items.length > 0) {
-                items[currentIndex].classList.remove('active');
-                currentIndex = (currentIndex + 1) % items.length;
-                items[currentIndex].classList.add('active');
-            }
+            items[currentIndex].classList.remove('active');
+            currentIndex = (currentIndex + 1) % items.length;
+            items[currentIndex].classList.add('active');
         }, settings.rotationSpeed);
 
-        // --- Welcome Overlay Logic ---
         const overlay = document.getElementById('welcome-overlay');
         function triggerWelcome() {
             overlay.classList.add('show');
             setTimeout(() => { overlay.classList.remove('show'); }, settings.welcomeDuration);
         }
-
         setInterval(triggerWelcome, settings.welcomeInterval);
     </script>
 </body>
