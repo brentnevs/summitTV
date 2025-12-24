@@ -30,7 +30,7 @@
             width: 100vw;
         }
 
-        /* --- TOP BAR --- */
+        /* --- TOP BAR: Large Branding --- */
         .top-bar {
             grid-column: 1 / span 2;
             background-color: var(--bg-color);
@@ -121,7 +121,7 @@
         .video-content { background-color: #000; position: relative; }
         iframe { width: 100%; height: 100%; border: none; }
 
-        /* --- WELCOME OVERLAY --- */
+        /* --- WELCOME OVERLAY: Optimized Layout --- */
         #welcome-overlay {
             position: fixed;
             top: 0;
@@ -137,7 +137,7 @@
             opacity: 0;
             visibility: hidden;
             transition: opacity 1.5s ease-in-out;
-            padding-bottom: 12vh; 
+            padding-bottom: 12vh; /* Shifts text/logo higher on screen */
         }
 
         #welcome-overlay.show { opacity: 1; visibility: visible; }
@@ -146,12 +146,12 @@
             font-size: 5.5rem; 
             color: var(--summit-navy); 
             margin-bottom: 25px; 
-            text-transform: uppercase; 
+            text-transform: uppercase; /* Capitalized as requested */
             letter-spacing: 4px;
         }
 
         #welcome-overlay img { 
-            width: 95%; 
+            width: 95%; /* Maximized Logo Size */
             max-height: 85vh; 
             object-fit: contain; 
         }
@@ -191,8 +191,8 @@
     <script>
         const settings = {
             rotationSpeed: 8000,    
-            welcomeInterval: 600000, 
-            welcomeDuration: 10000,  
+            welcomeInterval: 600000, // 10 minutes (600,000 ms)
+            welcomeDuration: 15000,  // 15 seconds (15,000 ms)
             infoItems: [
                 "Summit Performance Rehab & Wellness Centre",
                 "Please check in at the front desk.",
@@ -201,6 +201,7 @@
             ]
         };
 
+        // --- Clock Logic ---
         function updateClock() {
             const now = new Date();
             document.getElementById('time').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -209,6 +210,7 @@
         setInterval(updateClock, 1000);
         updateClock();
 
+        // --- Sidebar Rotation Logic ---
         const container = document.getElementById('info-container');
         settings.infoItems.forEach((text, index) => {
             const div = document.createElement('div');
@@ -225,9 +227,11 @@
             items[currentIndex].classList.add('active');
         }, settings.rotationSpeed);
 
+        // --- Welcome Overlay Logic ---
         const overlay = document.getElementById('welcome-overlay');
         setInterval(() => {
             overlay.classList.add('show');
+            // Remove the overlay after 15 seconds
             setTimeout(() => { overlay.classList.remove('show'); }, settings.welcomeDuration);
         }, settings.welcomeInterval);
     </script>
