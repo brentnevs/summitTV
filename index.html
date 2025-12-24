@@ -19,7 +19,7 @@
             background-color: #ffffff;
         }
 
-        /* --- START BUTTON (Required for Shuffle & Sound) --- */
+        /* --- START OVERLAY --- */
         #start-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: var(--summit-navy); z-index: 100000;
@@ -77,26 +77,29 @@
         #date { font-size: 1.3rem; color: var(--summit-green); text-transform: uppercase; font-weight: 700; letter-spacing: 2px; }
 
         .video-content { background-color: #000; position: relative; }
-        #player { width: 100%; height: 100%; border: none; }
+        #video-frame { width: 100%; height: 100%; border: none; }
 
         /* --- WELCOME OVERLAY --- */
         #welcome-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background-color: white; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; z-index: 99999; 
-            opacity: 0; visibility: hidden; transition: opacity 1.5s ease-in-out;
-            padding-bottom: 12vh; 
+            background-color: white; display: none; /* Controlled by JS display:flex */
+            flex-direction: column; align-items: center; justify-content: center;
+            z-index: 99999; opacity: 0; transition: opacity 1.5s ease-in-out;
         }
-
-        #welcome-overlay.show { opacity: 1; visibility: visible; }
 
         #welcome-overlay h1 { 
-            font-size: 5.5rem; color: var(--summit-navy); margin-bottom: 10px; 
+            font-size: 5.5rem; color: var(--summit-navy); 
             text-transform: uppercase; letter-spacing: 4px;
-            position: relative; top: 50px; /* Moves text down as requested */
+            /* 1. LOWERED THE TEXT */
+            margin-top: 120px; 
+            margin-bottom: 0;
         }
 
-        #welcome-overlay img { width: 95%; max-height: 90vh; object-fit: contain; }
+        #welcome-overlay img { 
+            width: 95%; max-height: 85vh; object-fit: contain; 
+            /* 2. RAISED THE LOGO */
+            margin-top: -40px; 
+        }
     </style>
 </head>
 <body>
@@ -123,11 +126,9 @@
             </div>
         </div>
         <div class="video-content">
-            <div id="player"></div>
+            <iframe id="video-frame" allow="autoplay; encrypted-media" allowfullscreen></iframe>
         </div>
     </div>
-
-    <script src="https://www.youtube.com/iframe_api"></script>
 
     <script>
         const settings = {
@@ -135,51 +136,33 @@
             welcomeInterval: 600000, 
             welcomeDuration: 15000,  
             playlistId: 'PLoXrf5exDo_qjKr7mbyyacKxD0zC57ej7',
+            // Total videos in your playlist (Approx 20-30 usually, let's set to 50 to be safe)
+            playlistSize: 50, 
             infoItems: [
                 "Summit Performance Rehab & Wellness Centre",
                 "Please check in at the front desk.",
                 "Reach Your Health Summit Here",
                 "Transforming Lives Through Hands-On Care",
-                "Follow us on Instagram! @summit_performance_rehab"
+                "Follow us on Instagram! @summit_ performance_ rehab"
             ]
         };
 
-        let player;
-
-        // 1. Setup the Player
-        function onYouTubeIframeAPIReady() {
-            player = new YT.Player('player', {
-                playerVars: {
-                    'listType': 'playlist',
-                    'list': settings.playlistId,
-                    'autoplay': 0,
-                    'mute': 0,
-                    'cc_load_policy': 1
-                },
-                events: {
-                    'onReady': onPlayerReady
-                }
-            });
-        }
-
-        function onPlayerReady(event) {
-            // Player is loaded but waiting for the button click
-        }
-
-        // 2. The "Magic" Shuffle Function
         function initDisplay() {
+            // Hide start screen
             document.getElementById('start-overlay').style.display = 'none';
             
-            if (player) {
-                player.setShuffle(true);      // Shuffles the list
-                player.playVideoAt(0);        // Starts at a random first video
-                player.setLoop(true);         // Keeps it going forever
-            }
+            // Generate a random index to start at a different video every time (Simulates Shuffle)
+            const randomStartIndex = Math.floor(Math.random() * settings.playlistSize);
+            
+            // Construct the YouTube URL manually to bypass API blocks
+            const videoUrl = `https://www.youtube.com/embed/videoseries?list=${settings.playlistId}&autoplay=1&index=${randomStartIndex}&loop=1&cc_load_policy=1`;
+            
+            document.getElementById('video-frame').src = videoUrl;
             
             triggerWelcome();
         }
 
-        // --- Clock & Sidebar Logic (Remains the same) ---
+        // --- Clock Logic ---
         function updateClock() {
             const now = new Date();
             document.getElementById('time').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -188,6 +171,7 @@
         setInterval(updateClock, 1000);
         updateClock();
 
+        // --- Sidebar Logic ---
         const container = document.getElementById('info-container');
         settings.infoItems.forEach((text, index) => {
             const div = document.createElement('div');
@@ -204,10 +188,16 @@
             items[currentIndex].classList.add('active');
         }, settings.rotationSpeed);
 
+        // --- Welcome Overlay Logic ---
         const overlay = document.getElementById('welcome-overlay');
         function triggerWelcome() {
-            overlay.classList.add('show');
-            setTimeout(() => { overlay.classList.remove('show'); }, settings.welcomeDuration);
+            overlay.style.display = 'flex';
+            setTimeout(() => { overlay.style.opacity = '1'; }, 10);
+            
+            setTimeout(() => { 
+                overlay.style.opacity = '0';
+                setTimeout(() => { overlay.style.display = 'none'; }, 1500);
+            }, settings.welcomeDuration);
         }
         setInterval(triggerWelcome, settings.welcomeInterval);
     </script>
