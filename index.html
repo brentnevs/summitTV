@@ -30,7 +30,7 @@
             width: 100vw;
         }
 
-        /* --- TOP BAR: Large Branding --- */
+        /* --- TOP BAR --- */
         .top-bar {
             grid-column: 1 / span 2;
             background-color: var(--bg-color);
@@ -40,7 +40,6 @@
             padding: 0;
             border-bottom: 8px solid var(--summit-green);
             z-index: 20;
-            overflow: visible;
         }
 
         .top-bar img {
@@ -104,7 +103,6 @@
             font-weight: 800;
             color: var(--summit-navy);
             display: block;
-            line-height: 1;
         }
 
         #date {
@@ -113,15 +111,13 @@
             text-transform: uppercase;
             font-weight: 700;
             letter-spacing: 2px;
-            margin-top: 5px;
-            display: block;
         }
 
         /* --- VIDEO CONTENT --- */
         .video-content { background-color: #000; position: relative; }
         iframe { width: 100%; height: 100%; border: none; }
 
-        /* --- WELCOME OVERLAY: Optimized Layout --- */
+        /* --- WELCOME OVERLAY --- */
         #welcome-overlay {
             position: fixed;
             top: 0;
@@ -133,25 +129,29 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 9999;
+            /* High z-index to ensure it covers the video */
+            z-index: 99999; 
             opacity: 0;
             visibility: hidden;
             transition: opacity 1.5s ease-in-out;
-            padding-bottom: 12vh; /* Shifts text/logo higher on screen */
+            padding-bottom: 12vh; 
         }
 
-        #welcome-overlay.show { opacity: 1; visibility: visible; }
+        #welcome-overlay.show { 
+            opacity: 1; 
+            visibility: visible; 
+        }
 
         #welcome-overlay h1 { 
             font-size: 5.5rem; 
             color: var(--summit-navy); 
             margin-bottom: 25px; 
-            text-transform: uppercase; /* Capitalized as requested */
+            text-transform: uppercase; 
             letter-spacing: 4px;
         }
 
         #welcome-overlay img { 
-            width: 95%; /* Maximized Logo Size */
+            width: 95%; 
             max-height: 85vh; 
             object-fit: contain; 
         }
@@ -191,14 +191,13 @@
     <script>
         const settings = {
             rotationSpeed: 8000,    
-            welcomeInterval: 600000, // 10 minutes (600,000 ms)
-            welcomeDuration: 15000,  // 15 seconds (15,000 ms)
+            welcomeInterval: 600000, // 10 minutes
+            welcomeDuration: 15000,  // 15 seconds
             infoItems: [
                 "Summit Performance Rehab & Wellness Centre",
                 "Please check in at the front desk.",
                 "Reach Your Health Summit",
-                "Transforming Lives Through Hands-On Care",
-                "Follow us on Instagram! @summit_performance_rehab"
+                "Transforming Lives Through Hands-On Care"
             ]
         };
 
@@ -211,7 +210,7 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // --- Sidebar Rotation Logic ---
+        // --- Sidebar Rotation ---
         const container = document.getElementById('info-container');
         settings.infoItems.forEach((text, index) => {
             const div = document.createElement('div');
@@ -230,11 +229,21 @@
 
         // --- Welcome Overlay Logic ---
         const overlay = document.getElementById('welcome-overlay');
-        setInterval(() => {
+
+        function triggerWelcome() {
             overlay.classList.add('show');
-            // Remove the overlay after 15 seconds
-            setTimeout(() => { overlay.classList.remove('show'); }, settings.welcomeDuration);
-        }, settings.welcomeInterval);
+            setTimeout(() => { 
+                overlay.classList.remove('show'); 
+            }, settings.welcomeDuration);
+        }
+
+        // 1. Show immediately on load
+        window.onload = () => {
+            triggerWelcome();
+        };
+
+        // 2. Then repeat every 10 minutes
+        setInterval(triggerWelcome, settings.welcomeInterval);
     </script>
 </body>
 </html>
