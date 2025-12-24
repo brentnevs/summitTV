@@ -76,13 +76,13 @@
         #time { font-size: 3.5rem; font-weight: 800; color: var(--summit-navy); display: block; }
         #date { font-size: 1.3rem; color: var(--summit-green); text-transform: uppercase; font-weight: 700; letter-spacing: 2px; }
 
-        .video-content { background-color: #000; position: relative; }
-        #video-frame { width: 100%; height: 100%; border: none; }
+        .video-content { background-color: #000; position: relative; overflow: hidden; }
+        #player { width: 100%; height: 100%; border: none; }
 
         /* --- WELCOME OVERLAY --- */
         #welcome-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background-color: white; display: none; /* Controlled by JS display:flex */
+            background-color: white; display: none;
             flex-direction: column; align-items: center; justify-content: center;
             z-index: 99999; opacity: 0; transition: opacity 1.5s ease-in-out;
         }
@@ -90,14 +90,14 @@
         #welcome-overlay h1 { 
             font-size: 5.5rem; color: var(--summit-navy); 
             text-transform: uppercase; letter-spacing: 4px;
-            /* 1. LOWERED THE TEXT */
+            /* Text Lowered */
             margin-top: 120px; 
             margin-bottom: 0;
         }
 
         #welcome-overlay img { 
             width: 95%; max-height: 85vh; object-fit: contain; 
-            /* 2. RAISED THE LOGO */
+            /* Logo Raised */
             margin-top: -40px; 
         }
     </style>
@@ -126,9 +126,11 @@
             </div>
         </div>
         <div class="video-content">
-            <iframe id="video-frame" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+            <div id="player"></div>
         </div>
     </div>
+
+    <script src="https://www.youtube.com/iframe_api"></script>
 
     <script>
         const settings = {
@@ -136,8 +138,6 @@
             welcomeInterval: 600000, 
             welcomeDuration: 15000,  
             playlistId: 'PLoXrf5exDo_qjKr7mbyyacKxD0zC57ej7',
-            // Total videos in your playlist (Approx 20-30 usually, let's set to 50 to be safe)
-            playlistSize: 50, 
             infoItems: [
                 "Summit Performance Rehab & Wellness Centre",
                 "Please check in at the front desk.",
@@ -147,18 +147,45 @@
             ]
         };
 
+        let player;
+        let isShuffled = false;
+
+        // 1. Initialize Player
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('player', {
+                height: '100%',
+                width: '100%',
+                playerVars: {
+                    'listType': 'playlist',
+                    'list': settings.playlistId,
+                    'autoplay': 0, 
+                    'mute': 0,
+                    'cc_load_policy': 1,
+                    'loop': 1
+                },
+                events: {
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        }
+
+        // 2. The Logic to Shuffle properly
+        function onPlayerStateChange(event) {
+            // When the video starts playing (State 1)
+            if (event.data == YT.PlayerState.PLAYING && !isShuffled) {
+                player.setShuffle(true); 
+                player.setLoop(true);
+                isShuffled = true;
+                // We call playVideoAt(0) immediately after setShuffle to force the playlist to randomize
+                player.playVideoAt(0);
+            }
+        }
+
         function initDisplay() {
-            // Hide start screen
             document.getElementById('start-overlay').style.display = 'none';
-            
-            // Generate a random index to start at a different video every time (Simulates Shuffle)
-            const randomStartIndex = Math.floor(Math.random() * settings.playlistSize);
-            
-            // Construct the YouTube URL manually to bypass API blocks
-            const videoUrl = `https://www.youtube.com/embed/videoseries?list=${settings.playlistId}&autoplay=1&index=${randomStartIndex}&loop=1&cc_load_policy=1`;
-            
-            document.getElementById('video-frame').src = videoUrl;
-            
+            if (player) {
+                player.playVideo();
+            }
             triggerWelcome();
         }
 
@@ -193,7 +220,6 @@
         function triggerWelcome() {
             overlay.style.display = 'flex';
             setTimeout(() => { overlay.style.opacity = '1'; }, 10);
-            
             setTimeout(() => { 
                 overlay.style.opacity = '0';
                 setTimeout(() => { overlay.style.display = 'none'; }, 1500);
