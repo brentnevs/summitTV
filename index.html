@@ -26,9 +26,9 @@
             display: flex; align-items: center; justify-content: center;
         }
         #start-btn {
-            padding: 25px 50px; font-size: 2rem; background: var(--summit-green);
-            color: white; border: none; border-radius: 10px; font-weight: bold;
-            cursor: pointer; text-transform: uppercase;
+            padding: 25px 50px; font-size: 2.2rem; background: var(--summit-green);
+            color: white; border: none; border-radius: 12px; font-weight: bold;
+            cursor: pointer; text-transform: uppercase; box-shadow: 0 10px 20px rgba(0,0,0,0.4);
         }
 
         .container {
@@ -76,13 +76,15 @@
         #time { font-size: 3.5rem; font-weight: 800; color: var(--summit-navy); display: block; }
         #date { font-size: 1.3rem; color: var(--summit-green); text-transform: uppercase; font-weight: 700; letter-spacing: 2px; }
 
-        .video-content { background-color: #000; position: relative; overflow: hidden; }
-        #player { width: 100%; height: 100%; border: none; }
+        /* --- VIDEO AREA --- */
+        .video-content { background-color: #000; position: relative; display: flex; align-items: center; justify-content: center; }
+        #player { width: 100%; height: 100%; }
+        .loading-text { color: white; position: absolute; font-size: 1.2rem; }
 
         /* --- WELCOME OVERLAY --- */
         #welcome-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background-color: white; display: none;
+            background-color: white; display: none; /* Controlled by JS */
             flex-direction: column; align-items: center; justify-content: center;
             z-index: 99999; opacity: 0; transition: opacity 1.5s ease-in-out;
         }
@@ -90,15 +92,15 @@
         #welcome-overlay h1 { 
             font-size: 5.5rem; color: var(--summit-navy); 
             text-transform: uppercase; letter-spacing: 4px;
-            /* Text Lowered */
-            margin-top: 120px; 
+            /* WELCOME TEXT LOWERED */
+            margin-top: 15vh; 
             margin-bottom: 0;
         }
 
         #welcome-overlay img { 
             width: 95%; max-height: 85vh; object-fit: contain; 
-            /* Logo Raised */
-            margin-top: -40px; 
+            /* LOGO RAISED */
+            margin-top: -5vh; 
         }
     </style>
 </head>
@@ -126,11 +128,10 @@
             </div>
         </div>
         <div class="video-content">
+            <div class="loading-text">Loading Playlist...</div>
             <div id="player"></div>
         </div>
     </div>
-
-    <script src="https://www.youtube.com/iframe_api"></script>
 
     <script>
         const settings = {
@@ -148,9 +149,20 @@
         };
 
         let player;
-        let isShuffled = false;
 
-        // 1. Initialize Player
+        // 1. This function loads the YouTube script ONLY after the button is clicked
+        function initDisplay() {
+            document.getElementById('start-overlay').style.display = 'none';
+            
+            const tag = document.createElement('script');
+            tag.src = "https://www.youtube.com/iframe_api";
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+            
+            triggerWelcome();
+        }
+
+        // 2. YouTube calls this automatically once the script loads
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
                 height: '100%',
@@ -158,35 +170,36 @@
                 playerVars: {
                     'listType': 'playlist',
                     'list': settings.playlistId,
-                    'autoplay': 0, 
+                    'autoplay': 1,
                     'mute': 0,
                     'cc_load_policy': 1,
                     'loop': 1
                 },
                 events: {
+                    'onReady': onPlayerReady,
                     'onStateChange': onPlayerStateChange
                 }
             });
         }
 
-        // 2. The Logic to Shuffle properly
-        function onPlayerStateChange(event) {
-            // When the video starts playing (State 1)
-            if (event.data == YT.PlayerState.PLAYING && !isShuffled) {
-                player.setShuffle(true); 
-                player.setLoop(true);
-                isShuffled = true;
-                // We call playVideoAt(0) immediately after setShuffle to force the playlist to randomize
-                player.playVideoAt(0);
-            }
+        // 3. SHUFFLE LOGIC
+        function onPlayerReady(event) {
+            // First we set shuffle to true
+            event.target.setShuffle(true);
+            // Then we tell it to play the playlist
+            event.target.playVideo();
         }
 
-        function initDisplay() {
-            document.getElementById('start-overlay').style.display = 'none';
-            if (player) {
-                player.playVideo();
+        function onPlayerStateChange(event) {
+            // This is a double-check: if the playlist starts, we force the shuffle again
+            // to make sure it's not playing consecutively.
+            if (event.data == YT.PlayerState.PLAYING) {
+                const playlist = player.getPlaylist();
+                // If it's the first time playing, we shuffle the index
+                if (player.getPlaylistIndex() === 0) {
+                    player.setShuffle(true);
+                }
             }
-            triggerWelcome();
         }
 
         // --- Clock Logic ---
