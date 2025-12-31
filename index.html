@@ -68,14 +68,6 @@
 
         .info-item.active { opacity: 1; }
 
-        /* --- AD COVER BUTTON --- */
-        #ad-cover-btn {
-            position: absolute; bottom: 180px; left: 30px; width: 85%;
-            padding: 15px; background-color: var(--summit-navy);
-            color: white; border: none; border-radius: 8px; font-weight: bold;
-            text-transform: uppercase; cursor: pointer; font-size: 1.1rem;
-        }
-
         #clock-container {
             position: absolute; bottom: 40px; left: 30px; width: 85%;
             border-top: 5px solid var(--summit-navy); padding-top: 15px;
@@ -126,8 +118,6 @@
             <h2>Information</h2>
             <div id="info-container"></div>
             
-            <button id="ad-cover-btn" onclick="triggerWelcome(30000)">Cover Ad (30 Sec)</button>
-            
             <div id="clock-container">
                 <span id="time"></span>
                 <span id="date"></span>
@@ -173,12 +163,10 @@
                     'mute': 0, 
                     'cc_load_policy': 1, 
                     'loop': 1,
-                    // 'playlist' param is required for looping to work on specific playlist IDs
                     'playlist': settings.playlistId 
                 },
                 events: {
                     'onReady': (event) => {
-                        // Ensure shuffle is OFF
                         event.target.setShuffle(false);
                         event.target.playVideo();
                     }
@@ -207,23 +195,24 @@
         let currentIndex = 0;
         const items = document.querySelectorAll('.info-item');
         setInterval(() => {
-            items[currentIndex].classList.remove('active');
-            currentIndex = (currentIndex + 1) % items.length;
-            items[currentIndex].classList.add('active');
+            if(items.length > 0) {
+                items[currentIndex].classList.remove('active');
+                currentIndex = (currentIndex + 1) % items.length;
+                items[currentIndex].classList.add('active');
+            }
         }, settings.rotationSpeed);
 
         // --- Welcome Overlay Logic ---
         const overlay = document.getElementById('welcome-overlay');
-        function triggerWelcome(customDuration) {
-            const duration = customDuration || settings.welcomeDuration;
+        function triggerWelcome() {
             overlay.style.display = 'flex';
             setTimeout(() => { overlay.style.opacity = '1'; }, 10);
             setTimeout(() => { 
                 overlay.style.opacity = '0';
                 setTimeout(() => { overlay.style.display = 'none'; }, 1500);
-            }, duration);
+            }, settings.welcomeDuration);
         }
-        setInterval(() => triggerWelcome(), settings.welcomeInterval);
+        setInterval(triggerWelcome, settings.welcomeInterval);
     </script>
 </body>
 </html>
