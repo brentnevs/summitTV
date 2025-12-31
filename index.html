@@ -68,6 +68,14 @@
 
         .info-item.active { opacity: 1; }
 
+        /* --- AD COVER BUTTON --- */
+        #ad-cover-btn {
+            position: absolute; bottom: 180px; left: 30px; width: 85%;
+            padding: 15px; background-color: var(--summit-navy);
+            color: white; border: none; border-radius: 8px; font-weight: bold;
+            text-transform: uppercase; cursor: pointer; font-size: 1.1rem;
+        }
+
         #clock-container {
             position: absolute; bottom: 40px; left: 30px; width: 85%;
             border-top: 5px solid var(--summit-navy); padding-top: 15px;
@@ -76,15 +84,13 @@
         #time { font-size: 3.5rem; font-weight: 800; color: var(--summit-navy); display: block; }
         #date { font-size: 1.3rem; color: var(--summit-green); text-transform: uppercase; font-weight: 700; letter-spacing: 2px; }
 
-        /* --- VIDEO AREA --- */
-        .video-content { background-color: #000; position: relative; display: flex; align-items: center; justify-content: center; }
+        .video-content { background-color: #000; position: relative; overflow: hidden; }
         #player { width: 100%; height: 100%; }
-        .loading-text { color: white; position: absolute; font-size: 1.2rem; }
 
         /* --- WELCOME OVERLAY --- */
         #welcome-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background-color: white; display: none; /* Controlled by JS */
+            background-color: white; display: none;
             flex-direction: column; align-items: center; justify-content: center;
             z-index: 99999; opacity: 0; transition: opacity 1.5s ease-in-out;
         }
@@ -92,14 +98,11 @@
         #welcome-overlay h1 { 
             font-size: 5.5rem; color: var(--summit-navy); 
             text-transform: uppercase; letter-spacing: 4px;
-            /* WELCOME TEXT LOWERED */
-            margin-top: 15vh; 
-            margin-bottom: 0;
+            margin-top: 15vh; margin-bottom: 0;
         }
 
         #welcome-overlay img { 
             width: 95%; max-height: 85vh; object-fit: contain; 
-            /* LOGO RAISED */
             margin-top: -5vh; 
         }
     </style>
@@ -122,6 +125,9 @@
         <div class="sidebar">
             <h2>Information</h2>
             <div id="info-container"></div>
+            
+            <button id="ad-cover-btn" onclick="triggerWelcome(30000)">Cover Ad (30 Sec)</button>
+            
             <div id="clock-container">
                 <span id="time"></span>
                 <span id="date"></span>
@@ -149,56 +155,35 @@
 
         let player;
 
-        // 1. This function loads the YouTube script ONLY after the button is clicked
         function initDisplay() {
             document.getElementById('start-overlay').style.display = 'none';
-            
             const tag = document.createElement('script');
             tag.src = "https://www.youtube.com/iframe_api";
-            const firstScriptTag = document.getElementsByTagName('script')[0];
-            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-            
+            document.body.appendChild(tag);
             triggerWelcome();
         }
 
-        // 2. YouTube calls this automatically once the script loads
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
-                height: '100%',
-                width: '100%',
+                height: '100%', width: '100%',
                 playerVars: {
-                    'listType': 'playlist',
+                    'listType': 'playlist', 
                     'list': settings.playlistId,
-                    'autoplay': 1,
-                    'mute': 0,
-                    'cc_load_policy': 1,
-                    'loop': 1
+                    'autoplay': 1, 
+                    'mute': 0, 
+                    'cc_load_policy': 1, 
+                    'loop': 1,
+                    // 'playlist' param is required for looping to work on specific playlist IDs
+                    'playlist': settings.playlistId 
                 },
                 events: {
-                    'onReady': onPlayerReady,
-                    'onStateChange': onPlayerStateChange
+                    'onReady': (event) => {
+                        // Ensure shuffle is OFF
+                        event.target.setShuffle(false);
+                        event.target.playVideo();
+                    }
                 }
             });
-        }
-
-        // 3. SHUFFLE LOGIC
-        function onPlayerReady(event) {
-            // First we set shuffle to true
-            event.target.setShuffle(true);
-            // Then we tell it to play the playlist
-            event.target.playVideo();
-        }
-
-        function onPlayerStateChange(event) {
-            // This is a double-check: if the playlist starts, we force the shuffle again
-            // to make sure it's not playing consecutively.
-            if (event.data == YT.PlayerState.PLAYING) {
-                const playlist = player.getPlaylist();
-                // If it's the first time playing, we shuffle the index
-                if (player.getPlaylistIndex() === 0) {
-                    player.setShuffle(true);
-                }
-            }
         }
 
         // --- Clock Logic ---
@@ -210,7 +195,7 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // --- Sidebar Logic ---
+        // --- Sidebar Rotation ---
         const container = document.getElementById('info-container');
         settings.infoItems.forEach((text, index) => {
             const div = document.createElement('div');
@@ -229,15 +214,16 @@
 
         // --- Welcome Overlay Logic ---
         const overlay = document.getElementById('welcome-overlay');
-        function triggerWelcome() {
+        function triggerWelcome(customDuration) {
+            const duration = customDuration || settings.welcomeDuration;
             overlay.style.display = 'flex';
             setTimeout(() => { overlay.style.opacity = '1'; }, 10);
             setTimeout(() => { 
                 overlay.style.opacity = '0';
                 setTimeout(() => { overlay.style.display = 'none'; }, 1500);
-            }, settings.welcomeDuration);
+            }, duration);
         }
-        setInterval(triggerWelcome, settings.welcomeInterval);
+        setInterval(() => triggerWelcome(), settings.welcomeInterval);
     </script>
 </body>
 </html>
