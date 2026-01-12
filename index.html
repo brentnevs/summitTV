@@ -13,10 +13,11 @@
             --bg-color: #ffffff;
         }
 
+        /* TV-Specific: Force the background to stay white and active */
         body, html {
             margin: 0; padding: 0; height: 100%; overflow: hidden;
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color); /* Explicit background */
+            background-color: white !important;
         }
 
         /* --- START OVERLAY --- */
@@ -28,7 +29,7 @@
         #start-btn {
             padding: 25px 50px; font-size: 2.2rem; background: var(--summit-green);
             color: white; border: none; border-radius: 12px; font-weight: bold;
-            cursor: pointer; text-transform: uppercase; box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+            cursor: pointer; text-transform: uppercase;
         }
 
         .container {
@@ -36,25 +37,31 @@
             grid-template-columns: var(--sidebar-width) 1fr;
             grid-template-rows: var(--topbar-height) 1fr;
             height: 100vh; width: 100vw;
-            background-color: var(--bg-color);
+            background-color: white;
+            /* TV FIX: Tiny animation keeps the whole screen "awake" */
+            animation: tv-stay-alive 10s infinite linear;
+        }
+
+        @keyframes tv-stay-alive {
+            0% { opacity: 1; }
+            50% { opacity: 0.999; } /* A change so small the human eye can't see it */
+            100% { opacity: 1; }
         }
 
         .top-bar {
             grid-column: 1 / span 2;
-            background-color: var(--bg-color);
+            background-color: white;
             display: flex; align-items: center; justify-content: center;
             border-bottom: 8px solid var(--summit-green);
             z-index: 20;
-            will-change: transform; /* Keeps GPU active */
         }
 
         .top-bar img { height: 100%; width: auto; object-fit: contain; transform: scale(1.2); }
 
         .sidebar {
-            background-color: var(--bg-color);
+            background-color: white;
             padding: 40px 30px; border-right: 8px solid var(--summit-navy);
             display: flex; flex-direction: column; position: relative; z-index: 10;
-            will-change: opacity; /* Keeps GPU active */
         }
 
         .sidebar h2 { 
@@ -74,14 +81,13 @@
         #clock-container {
             position: absolute; bottom: 40px; left: 30px; width: 85%;
             border-top: 5px solid var(--summit-navy); padding-top: 15px;
-            will-change: contents; /* Keeps clock from dimming */
         }
 
         #time { font-size: 3.5rem; font-weight: 800; color: var(--summit-navy); display: block; }
         #date { font-size: 1.3rem; color: var(--summit-green); text-transform: uppercase; font-weight: 700; letter-spacing: 2px; }
 
         .video-content { background-color: #000; position: relative; overflow: hidden; }
-        #player { width: 100%; height: 100%; }
+        #player { width: 100%; height: 100%; border: none; }
 
         /* --- WELCOME OVERLAY --- */
         #welcome-overlay {
@@ -97,10 +103,7 @@
             margin-top: 15vh; margin-bottom: 0;
         }
 
-        #welcome-overlay img { 
-            width: 95%; max-height: 85vh; object-fit: contain; 
-            margin-top: -5vh; 
-        }
+        #welcome-overlay img { width: 95%; max-height: 85vh; object-fit: contain; margin-top: -5vh; }
     </style>
 </head>
 <body>
@@ -121,7 +124,6 @@
         <div class="sidebar">
             <h2>Information</h2>
             <div id="info-container"></div>
-            
             <div id="clock-container">
                 <span id="time"></span>
                 <span id="date"></span>
@@ -143,31 +145,17 @@
                 "Please check in at the front desk.",
                 "Reach Your Health Summit Here",
                 "Transforming Lives Through Hands-On Care",
-                "Follow us on Instagram! @summit_ performance_ rehab",
-                "Grand Opening!!! January 17th at 11:00am to 3:00pm"            ]
+                "Follow us on Instagram! @summit_ performance_ rehab"
+            ]
         };
 
         let player;
-        let wakeLock = null;
-
-        // --- Screen Wake Lock (Prevents Dimming/Blacking Out) ---
-        async function requestWakeLock() {
-            try {
-                if ('wakeLock' in navigator) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                }
-            } catch (err) {
-                console.log(`${err.name}, ${err.message}`);
-            }
-        }
 
         function initDisplay() {
             document.getElementById('start-overlay').style.display = 'none';
             const tag = document.createElement('script');
             tag.src = "https://www.youtube.com/iframe_api";
             document.body.appendChild(tag);
-            
-            requestWakeLock(); // Activate wake lock
             triggerWelcome();
         }
 
@@ -181,18 +169,16 @@
                     'mute': 0, 
                     'cc_load_policy': 1, 
                     'loop': 1,
-                    'playlist': settings.playlistId 
+                    'playlist': settings.playlistId,
+                    'playsinline': 1 // Essential for Smart TVs
                 },
                 events: {
-                    'onReady': (event) => {
-                        event.target.setShuffle(false);
-                        event.target.playVideo();
-                    }
+                    'onReady': (e) => { e.target.playVideo(); }
                 }
             });
         }
 
-        // --- Clock Logic ---
+        // --- Clock Logic (High Frequency to keep TV alert) ---
         function updateClock() {
             const now = new Date();
             document.getElementById('time').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -202,42 +188,33 @@
         updateClock();
 
         // --- Sidebar Rotation ---
-        const container = document.getElementById('info-container');
-        settings.infoItems.forEach((text, index) => {
+        const infoDiv = document.getElementById('info-container');
+        settings.infoItems.forEach((text, i) => {
             const div = document.createElement('div');
-            div.className = 'info-item' + (index === 0 ? ' active' : '');
+            div.className = 'info-item' + (i === 0 ? ' active' : '');
             div.innerText = text;
-            container.appendChild(div);
+            infoDiv.appendChild(div);
         });
 
-        let currentIndex = 0;
+        let curIdx = 0;
         const items = document.querySelectorAll('.info-item');
         setInterval(() => {
-            if(items.length > 0) {
-                items[currentIndex].classList.remove('active');
-                currentIndex = (currentIndex + 1) % items.length;
-                items[currentIndex].classList.add('active');
-            }
+            items[curIdx].classList.remove('active');
+            curIdx = (curIdx + 1) % items.length;
+            items[curIdx].classList.add('active');
         }, settings.rotationSpeed);
 
         // --- Welcome Overlay Logic ---
-        const overlay = document.getElementById('welcome-overlay');
         function triggerWelcome() {
+            const overlay = document.getElementById('welcome-overlay');
             overlay.style.display = 'flex';
-            setTimeout(() => { overlay.style.opacity = '1'; }, 10);
+            setTimeout(() => { overlay.style.opacity = '1'; }, 50);
             setTimeout(() => { 
                 overlay.style.opacity = '0';
                 setTimeout(() => { overlay.style.display = 'none'; }, 1500);
             }, settings.welcomeDuration);
         }
         setInterval(triggerWelcome, settings.welcomeInterval);
-
-        // Re-request wake lock if tab is hidden/shown
-        document.addEventListener('visibilitychange', async () => {
-            if (wakeLock !== null && document.visibilityState === 'visible') {
-                await requestWakeLock();
-            }
-        });
     </script>
 </body>
 </html>
