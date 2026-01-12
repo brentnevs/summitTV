@@ -16,7 +16,7 @@
         body, html {
             margin: 0; padding: 0; height: 100%; overflow: hidden;
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            background-color: #ffffff;
+            background-color: var(--bg-color); /* Explicit background */
         }
 
         /* --- START OVERLAY --- */
@@ -36,6 +36,7 @@
             grid-template-columns: var(--sidebar-width) 1fr;
             grid-template-rows: var(--topbar-height) 1fr;
             height: 100vh; width: 100vw;
+            background-color: var(--bg-color);
         }
 
         .top-bar {
@@ -44,6 +45,7 @@
             display: flex; align-items: center; justify-content: center;
             border-bottom: 8px solid var(--summit-green);
             z-index: 20;
+            will-change: transform; /* Keeps GPU active */
         }
 
         .top-bar img { height: 100%; width: auto; object-fit: contain; transform: scale(1.2); }
@@ -52,6 +54,7 @@
             background-color: var(--bg-color);
             padding: 40px 30px; border-right: 8px solid var(--summit-navy);
             display: flex; flex-direction: column; position: relative; z-index: 10;
+            will-change: opacity; /* Keeps GPU active */
         }
 
         .sidebar h2 { 
@@ -71,6 +74,7 @@
         #clock-container {
             position: absolute; bottom: 40px; left: 30px; width: 85%;
             border-top: 5px solid var(--summit-navy); padding-top: 15px;
+            will-change: contents; /* Keeps clock from dimming */
         }
 
         #time { font-size: 3.5rem; font-weight: 800; color: var(--summit-navy); display: block; }
@@ -140,17 +144,30 @@
                 "Reach Your Health Summit Here",
                 "Transforming Lives Through Hands-On Care",
                 "Follow us on Instagram! @summit_ performance_ rehab",
-                "Grand Opening Saturday Januarary 17th!! 11:00am-3:00pm"
-            ]
+                "Grand Opening!!! January 17th at 11:00am to 3:00pm"            ]
         };
 
         let player;
+        let wakeLock = null;
+
+        // --- Screen Wake Lock (Prevents Dimming/Blacking Out) ---
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                }
+            } catch (err) {
+                console.log(`${err.name}, ${err.message}`);
+            }
+        }
 
         function initDisplay() {
             document.getElementById('start-overlay').style.display = 'none';
             const tag = document.createElement('script');
             tag.src = "https://www.youtube.com/iframe_api";
             document.body.appendChild(tag);
+            
+            requestWakeLock(); // Activate wake lock
             triggerWelcome();
         }
 
@@ -214,6 +231,13 @@
             }, settings.welcomeDuration);
         }
         setInterval(triggerWelcome, settings.welcomeInterval);
+
+        // Re-request wake lock if tab is hidden/shown
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+                await requestWakeLock();
+            }
+        });
     </script>
 </body>
 </html>
