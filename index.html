@@ -13,11 +13,28 @@
             --bg-color: #ffffff;
         }
 
-        /* TV-Specific: Force the background to stay white and active */
         body, html {
             margin: 0; padding: 0; height: 100%; overflow: hidden;
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            background-color: white !important;
+            background-color: var(--bg-color);
+        }
+
+        /* --- THE TV "STAY ALIVE" NOISE LAYER --- */
+        /* This creates a tiny bit of movement across the whole screen to stop TV blackouts */
+        #tv-heartbeat {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 9999;
+            opacity: 0.02; /* Nearly invisible to humans, visible to TV hardware */
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            animation: noise-shift 0.2s infinite;
+        }
+
+        @keyframes noise-shift {
+            0% { transform: translate(0,0); }
+            10% { transform: translate(-1%,-1%); }
+            20% { transform: translate(1%,1%); }
+            30% { transform: translate(-2%,1%); }
+            100% { transform: translate(0,0); }
         }
 
         /* --- START OVERLAY --- */
@@ -38,14 +55,7 @@
             grid-template-rows: var(--topbar-height) 1fr;
             height: 100vh; width: 100vw;
             background-color: white;
-            /* TV FIX: Tiny animation keeps the whole screen "awake" */
-            animation: tv-stay-alive 10s infinite linear;
-        }
-
-        @keyframes tv-stay-alive {
-            0% { opacity: 1; }
-            50% { opacity: 0.999; } /* A change so small the human eye can't see it */
-            100% { opacity: 1; }
+            position: relative;
         }
 
         .top-bar {
@@ -54,6 +64,7 @@
             display: flex; align-items: center; justify-content: center;
             border-bottom: 8px solid var(--summit-green);
             z-index: 20;
+            transform: translate3d(0,0,0);
         }
 
         .top-bar img { height: 100%; width: auto; object-fit: contain; transform: scale(1.2); }
@@ -62,6 +73,7 @@
             background-color: white;
             padding: 40px 30px; border-right: 8px solid var(--summit-navy);
             display: flex; flex-direction: column; position: relative; z-index: 10;
+            transform: translate3d(0,0,0);
         }
 
         .sidebar h2 { 
@@ -107,6 +119,8 @@
     </style>
 </head>
 <body>
+
+    <div id="tv-heartbeat"></div>
 
     <div id="start-overlay">
         <button id="start-btn" onclick="initDisplay()">Start Summit Display</button>
@@ -165,12 +179,9 @@
                 playerVars: {
                     'listType': 'playlist', 
                     'list': settings.playlistId,
-                    'autoplay': 1, 
-                    'mute': 0, 
-                    'cc_load_policy': 1, 
-                    'loop': 1,
+                    'autoplay': 1, 'mute': 0, 'cc_load_policy': 1, 'loop': 1,
                     'playlist': settings.playlistId,
-                    'playsinline': 1 // Essential for Smart TVs
+                    'playsinline': 1 
                 },
                 events: {
                     'onReady': (e) => { e.target.playVideo(); }
@@ -178,7 +189,6 @@
             });
         }
 
-        // --- Clock Logic (High Frequency to keep TV alert) ---
         function updateClock() {
             const now = new Date();
             document.getElementById('time').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -187,7 +197,6 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // --- Sidebar Rotation ---
         const infoDiv = document.getElementById('info-container');
         settings.infoItems.forEach((text, i) => {
             const div = document.createElement('div');
@@ -204,7 +213,6 @@
             items[curIdx].classList.add('active');
         }, settings.rotationSpeed);
 
-        // --- Welcome Overlay Logic ---
         function triggerWelcome() {
             const overlay = document.getElementById('welcome-overlay');
             overlay.style.display = 'flex';
