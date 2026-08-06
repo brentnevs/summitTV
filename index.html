@@ -106,7 +106,9 @@
         #date { font-size: 1.3rem; color: var(--summit-green); text-transform: uppercase; font-weight: 700; letter-spacing: 2px; }
 
         .video-content { background-color: #000; position: relative; overflow: hidden; }
-        #player { width: 100%; height: 100%; border: none; }
+        
+        /* NO MORE IFRAME - Native HTML5 Video Element */
+        #tv-player { width: 100%; height: 100%; border: none; object-fit: cover; }
 
         /* --- WELCOME OVERLAY --- */
         #welcome-overlay {
@@ -129,7 +131,6 @@
 
     <div id="tv-heartbeat"></div>
 
-    <!-- Hidden input to simulate remote activity -->
     <input type="text" id="tv-focus-bouncer" tabindex="-1">
 
     <div id="start-overlay">
@@ -154,7 +155,8 @@
             </div>
         </div>
         <div class="video-content">
-            <div id="player"></div>
+            <!-- Native Video Element -->
+            <video id="tv-player" autoplay playsinline></video>
         </div>
     </div>
 
@@ -163,7 +165,7 @@
             rotationSpeed: 8000,    
             welcomeInterval: 600000, 
             welcomeDuration: 15000,  
-            playlistId: 'PLoXrf5exDo_qjKr7mbyyacKxD0zC57ej7',
+            playlistId: 'PLoXrf5exDo_qjKr7mbyyacKxD0zC57ej7', // Keep editing via YouTube App!
             infoItems: [
                 "Summit Performance Rehab & Wellness Centre",
                 "Please check in at the front desk.",
@@ -175,44 +177,100 @@
             ]
         };
 
-        let player;
+        // --- Custom Video Player Logic ---
+        let playlistIds = [];
+        let currentVideoIndex = 0;
+        const videoPlayer = document.getElementById('tv-player');
+
+        // When a video ends, move to the next one
+        videoPlayer.addEventListener('ended', moveToNext);
+        videoPlayer.addEventListener('error', () => {
+            console.warn("Video failed to play, skipping to next...");
+            moveToNext();
+        });
+
         let wakeLock = null;
 
-        // --- Screen Wake Lock API ---
         async function requestWakeLock() {
             try {
                 if ('wakeLock' in navigator) {
                     wakeLock = await navigator.wakeLock.request('screen');
                 }
-            } catch (err) {
-                console.log("Wake Lock request failed:", err);
-            }
+            } catch (err) { }
         }
 
         function initDisplay() {
             document.getElementById('start-overlay').style.display = 'none';
-            const tag = document.createElement('script');
-            tag.src = "https://www.youtube.com/iframe_api";
-            document.body.appendChild(tag);
-            
-            requestWakeLock(); // Lock screen awake on startup
+            requestWakeLock();
             triggerWelcome();
+            
+            // Start the custom YouTube Bypass process
+            loadPlaylist(); 
         }
 
-        function onYouTubeIframeAPIReady() {
-            player = new YT.Player('player', {
-                height: '100%', width: '100%',
-                playerVars: {
-                    'listType': 'playlist', 
-                    'list': settings.playlistId,
-                    'autoplay': 1, 'mute': 0, 'cc_load_policy': 1, 'loop': 1,
-                    'playlist': settings.playlistId,
-                    'playsinline': 1 
-                },
-                events: {
-                    'onReady': (e) => { e.target.playVideo(); }
+        // 1. Get all Video IDs from your YouTube Playlist
+        async function loadPlaylist() {
+            try {
+                const response = await fetch(`https://pipedapi.kavin.rocks/playlists/${settings.playlistId}`);
+                const data = await response.json();
+                
+                if (data.relatedStreams) {
+                    playlistIds = data.relatedStreams.map(item => {
+                        const match = item.url.match(/v=([^&]+)/);
+                        return match ? match[1] : null;
+                    }).filter(id => id != null);
                 }
-            });
+                
+                if (playlistIds.length > 0) {
+                    playNextVideo();
+                } else {
+                    console.error("No videos found.");
+                    setTimeout(loadPlaylist, 10000); // Retry later
+                }
+            } catch (e) {
+                console.error("Failed to load playlist, retrying...", e);
+                setTimeout(loadPlaylist, 10000);
+            }
+        }
+
+        // 2. Extract the raw MP4 stream of the specific video
+        async function playNextVideo() {
+            if (playlistIds.length === 0) return;
+            const videoId = playlistIds[currentVideoIndex];
+            
+            try {
+                const res = await fetch(`https://pipedapi.kavin.rocks/streams/${videoId}`);
+                const data = await res.json();
+                
+                let stream = null;
+                if (data.videoStreams) {
+                    // Look for an mp4 stream that contains both video and audio (videoOnly is false)
+                    stream = data.videoStreams.find(s => !s.videoOnly && s.mimeType.includes('mp4'))
+                          || data.videoStreams.find(s => !s.videoOnly)
+                          || data.videoStreams[0];
+                }
+                
+                if (stream && stream.url) {
+                    videoPlayer.src = stream.url;
+                    videoPlayer.play();
+                } else {
+                    throw new Error("No usable stream URL found.");
+                }
+            } catch (e) {
+                console.error("Stream extraction failed:", e);
+                setTimeout(moveToNext, 1000); // Skip to next video if error occurs
+            }
+        }
+
+        function moveToNext() {
+            currentVideoIndex = (currentVideoIndex + 1) % playlistIds.length;
+            
+            // Re-fetch the playlist occasionally in case you added/removed videos in the app
+            if (currentVideoIndex === 0) {
+                loadPlaylist();
+            } else {
+                playNextVideo();
+            }
         }
 
         // --- Clock Logic ---
@@ -253,7 +311,7 @@
         }
         setInterval(triggerWelcome, settings.welcomeInterval);
 
-        // --- Invisible Focus Bouncer (Simulates user activity every 60s) ---
+        // --- Anti-Screensaver Focus Bouncer ---
         setInterval(() => {
             const bouncer = document.getElementById('tv-focus-bouncer');
             if (bouncer) {
@@ -262,7 +320,6 @@
             }
         }, 60000);
 
-        // --- Re-request Wake Lock if tab visibility changes ---
         document.addEventListener('visibilitychange', async () => {
             if (wakeLock !== null && document.visibilityState === 'visible') {
                 await requestWakeLock();
