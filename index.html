@@ -105,10 +105,21 @@
         #time { font-size: 3.5rem; font-weight: 800; color: var(--summit-navy); display: block; }
         #date { font-size: 1.3rem; color: var(--summit-green); text-transform: uppercase; font-weight: 700; letter-spacing: 2px; }
 
-        .video-content { background-color: #000; position: relative; overflow: hidden; }
+        .video-content { 
+            background-color: #000; 
+            position: relative; 
+            overflow: hidden; 
+            width: 100%; 
+            height: 100%; 
+        }
         
-        /* Native HTML5 Video Element */
-        #tv-player { width: 100%; height: 100%; border: none; object-fit: cover; }
+        /* YouTube Player Iframe Styling */
+        #tv-player { 
+            width: 100%; 
+            height: 100%; 
+            border: none; 
+            pointer-events: none; /* Prevents interaction overlays */
+        }
 
         /* --- WELCOME OVERLAY --- */
         #welcome-overlay {
@@ -155,13 +166,15 @@
             </div>
         </div>
         <div class="video-content">
-            <!-- Native Video Element -->
-            <video id="tv-player" autoplay playsinline></video>
+            <!-- YouTube Iframe Container -->
+            <div id="tv-player"></div>
         </div>
     </div>
 
+    <!-- YouTube IFrame API Script -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+
     <script>
-        // Use older "var" instead of "const/let" for maximum TV browser compatibility
         var settings = {
             rotationSpeed: 8000,    
             welcomeInterval: 600000, 
@@ -173,121 +186,46 @@
                 "Reach Your Health Summit Here",
                 "Transforming Lives Through Hands-On Care",
                 "Home of Steady State Wellness",
-                "Follow us on Instagram! @summit_ performance_ rehab", 
+                "Follow us on Instagram! @summit_performance_rehab", 
                 "Follow us on Instagram! @steadystate_ck",
                 "Vote for us on CommunityVotes Chatham-Kent!"
             ]
         };
 
-        var playlistIds = [];
-        var currentVideoIndex = 0;
-        var videoPlayer = document.getElementById('tv-player');
-
-        videoPlayer.addEventListener('ended', moveToNext);
-        videoPlayer.addEventListener('error', function() {
-            console.warn("Video failed to play, skipping to next...");
-            moveToNext();
-        });
+        var player;
 
         function initDisplay() {
             document.getElementById('start-overlay').style.display = 'none';
             triggerWelcome();
-            loadPlaylist(); 
-        }
-
-        function loadPlaylist() {
-            var xhr = new XMLHttpRequest();
-            xhr.open("GET", "https://pipedapi.kavin.rocks/playlists/" + settings.playlistId, true);
-            xhr.onreadystatechange = function () {
-                if (xhr.readyState === 4) {
-                    if (xhr.status === 200) {
-                        try {
-                            var data = JSON.parse(xhr.responseText);
-                            if (data.relatedStreams) {
-                                playlistIds = [];
-                                for (var i = 0; i < data.relatedStreams.length; i++) {
-                                    var match = data.relatedStreams[i].url.match(/v=([^&]+)/);
-                                    if (match && match[1]) {
-                                        playlistIds.push(match[1]);
-                                    }
-                                }
-                                if (playlistIds.length > 0) {
-                                    playNextVideo();
-                                } else {
-                                    setTimeout(loadPlaylist, 10000); 
-                                }
-                            }
-                        } catch (e) {
-                            setTimeout(loadPlaylist, 10000);
-                        }
-                    } else {
-                        setTimeout(loadPlaylist, 10000);
-                    }
-                }
-            };
-            xhr.send();
-        }
-
-        function playNextVideo() {
-            if (playlistIds.length === 0) return;
-            var videoId = playlistIds[currentVideoIndex];
             
-            var xhr = new XMLHttpRequest();
-            xhr.open("GET", "https://pipedapi.kavin.rocks/streams/" + videoId, true);
-            xhr.onreadystatechange = function () {
-                if (xhr.readyState === 4) {
-                    if (xhr.status === 200) {
-                        try {
-                            var data = JSON.parse(xhr.responseText);
-                            var stream = null;
-                            
-                            if (data.videoStreams) {
-                                for (var i = 0; i < data.videoStreams.length; i++) {
-                                    var s = data.videoStreams[i];
-                                    if (!s.videoOnly && s.mimeType.indexOf('mp4') !== -1) {
-                                        stream = s;
-                                        break;
-                                    }
-                                }
-                                if (!stream) {
-                                    for (var j = 0; j < data.videoStreams.length; j++) {
-                                        if (!data.videoStreams[j].videoOnly) {
-                                            stream = data.videoStreams[j];
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            if (stream && stream.url) {
-                                videoPlayer.src = stream.url;
-                                var playPromise = videoPlayer.play();
-                                if (playPromise !== undefined) {
-                                    playPromise.catch(function(error) {
-                                        console.warn("Autoplay prevented:", error);
-                                    });
-                                }
-                            } else {
-                                setTimeout(moveToNext, 1000);
-                            }
-                        } catch (e) {
-                            setTimeout(moveToNext, 1000);
+            // Create YouTube Player upon initialization
+            player = new YT.Player('tv-player', {
+                height: '100%',
+                width: '100%',
+                playerVars: {
+                    listType: 'playlist',
+                    list: settings.playlistId,
+                    autoplay: 1,
+                    controls: 0,
+                    showinfo: 0,
+                    modestbranding: 1,
+                    loop: 1,
+                    rel: 0,
+                    fs: 0,
+                    iv_load_policy: 3
+                },
+                events: {
+                    'onReady': function(event) {
+                        event.target.playVideo();
+                    },
+                    'onError': function(event) {
+                        console.warn("YouTube error encountered. Skipping track...", event.data);
+                        if (player && player.nextVideo) {
+                            player.nextVideo();
                         }
-                    } else {
-                        setTimeout(moveToNext, 1000);
                     }
                 }
-            };
-            xhr.send();
-        }
-
-        function moveToNext() {
-            currentVideoIndex = (currentVideoIndex + 1) % playlistIds.length;
-            if (currentVideoIndex === 0) {
-                loadPlaylist();
-            } else {
-                playNextVideo();
-            }
+            });
         }
 
         function updateClock() {
