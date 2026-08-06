@@ -161,7 +161,8 @@
     </div>
 
     <script>
-        const settings = {
+        // Use older "var" instead of "const/let" for maximum TV browser compatibility
+        var settings = {
             rotationSpeed: 8000,    
             welcomeInterval: 600000, 
             welcomeDuration: 15000,  
@@ -173,99 +174,115 @@
                 "Transforming Lives Through Hands-On Care",
                 "Home of Steady State Wellness",
                 "Follow us on Instagram! @summit_ performance_ rehab", 
-                "Follow us on Instagram! @steadystate_ck"
+                "Follow us on Instagram! @steadystate_ck",
+                "Vote for us on CommunityVotes Chatham-Kent!"
             ]
         };
 
-        // --- Custom Video Player Logic ---
-        let playlistIds = [];
-        let currentVideoIndex = 0;
-        const videoPlayer = document.getElementById('tv-player');
+        var playlistIds = [];
+        var currentVideoIndex = 0;
+        var videoPlayer = document.getElementById('tv-player');
 
-        // When a video ends, move to the next one
         videoPlayer.addEventListener('ended', moveToNext);
-        videoPlayer.addEventListener('error', () => {
+        videoPlayer.addEventListener('error', function() {
             console.warn("Video failed to play, skipping to next...");
             moveToNext();
         });
 
-        let wakeLock = null;
-
-        async function requestWakeLock() {
-            try {
-                if ('wakeLock' in navigator) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                }
-            } catch (err) { }
-        }
-
         function initDisplay() {
             document.getElementById('start-overlay').style.display = 'none';
-            requestWakeLock();
             triggerWelcome();
-            
-            // Start the custom YouTube Bypass process
             loadPlaylist(); 
         }
 
-        // 1. Get all Video IDs from your YouTube Playlist
-        async function loadPlaylist() {
-            try {
-                const response = await fetch(`https://pipedapi.kavin.rocks/playlists/${settings.playlistId}`);
-                const data = await response.json();
-                
-                if (data.relatedStreams) {
-                    playlistIds = data.relatedStreams.map(item => {
-                        const match = item.url.match(/v=([^&]+)/);
-                        return match ? match[1] : null;
-                    }).filter(id => id != null);
+        function loadPlaylist() {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", "https://pipedapi.kavin.rocks/playlists/" + settings.playlistId, true);
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        try {
+                            var data = JSON.parse(xhr.responseText);
+                            if (data.relatedStreams) {
+                                playlistIds = [];
+                                for (var i = 0; i < data.relatedStreams.length; i++) {
+                                    var match = data.relatedStreams[i].url.match(/v=([^&]+)/);
+                                    if (match && match[1]) {
+                                        playlistIds.push(match[1]);
+                                    }
+                                }
+                                if (playlistIds.length > 0) {
+                                    playNextVideo();
+                                } else {
+                                    setTimeout(loadPlaylist, 10000); 
+                                }
+                            }
+                        } catch (e) {
+                            setTimeout(loadPlaylist, 10000);
+                        }
+                    } else {
+                        setTimeout(loadPlaylist, 10000);
+                    }
                 }
-                
-                if (playlistIds.length > 0) {
-                    playNextVideo();
-                } else {
-                    console.error("No videos found.");
-                    setTimeout(loadPlaylist, 10000); // Retry later
-                }
-            } catch (e) {
-                console.error("Failed to load playlist, retrying...", e);
-                setTimeout(loadPlaylist, 10000);
-            }
+            };
+            xhr.send();
         }
 
-        // 2. Extract the raw MP4 stream of the specific video
-        async function playNextVideo() {
+        function playNextVideo() {
             if (playlistIds.length === 0) return;
-            const videoId = playlistIds[currentVideoIndex];
+            var videoId = playlistIds[currentVideoIndex];
             
-            try {
-                const res = await fetch(`https://pipedapi.kavin.rocks/streams/${videoId}`);
-                const data = await res.json();
-                
-                let stream = null;
-                if (data.videoStreams) {
-                    // Look for an mp4 stream that contains both video and audio (videoOnly is false)
-                    stream = data.videoStreams.find(s => !s.videoOnly && s.mimeType.includes('mp4'))
-                          || data.videoStreams.find(s => !s.videoOnly)
-                          || data.videoStreams[0];
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", "https://pipedapi.kavin.rocks/streams/" + videoId, true);
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        try {
+                            var data = JSON.parse(xhr.responseText);
+                            var stream = null;
+                            
+                            if (data.videoStreams) {
+                                for (var i = 0; i < data.videoStreams.length; i++) {
+                                    var s = data.videoStreams[i];
+                                    if (!s.videoOnly && s.mimeType.indexOf('mp4') !== -1) {
+                                        stream = s;
+                                        break;
+                                    }
+                                }
+                                if (!stream) {
+                                    for (var j = 0; j < data.videoStreams.length; j++) {
+                                        if (!data.videoStreams[j].videoOnly) {
+                                            stream = data.videoStreams[j];
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            if (stream && stream.url) {
+                                videoPlayer.src = stream.url;
+                                var playPromise = videoPlayer.play();
+                                if (playPromise !== undefined) {
+                                    playPromise.catch(function(error) {
+                                        console.warn("Autoplay prevented:", error);
+                                    });
+                                }
+                            } else {
+                                setTimeout(moveToNext, 1000);
+                            }
+                        } catch (e) {
+                            setTimeout(moveToNext, 1000);
+                        }
+                    } else {
+                        setTimeout(moveToNext, 1000);
+                    }
                 }
-                
-                if (stream && stream.url) {
-                    videoPlayer.src = stream.url;
-                    videoPlayer.play();
-                } else {
-                    throw new Error("No usable stream URL found.");
-                }
-            } catch (e) {
-                console.error("Stream extraction failed:", e);
-                setTimeout(moveToNext, 1000); // Skip to next video if error occurs
-            }
+            };
+            xhr.send();
         }
 
         function moveToNext() {
             currentVideoIndex = (currentVideoIndex + 1) % playlistIds.length;
-            
-            // Re-fetch the playlist occasionally in case you added/removed videos in the app
             if (currentVideoIndex === 0) {
                 loadPlaylist();
             } else {
@@ -273,58 +290,50 @@
             }
         }
 
-        // --- Clock Logic ---
         function updateClock() {
-            const now = new Date();
-            document.getElementById('time').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-            document.getElementById('date').innerText = now.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+            var now = new Date();
+            var timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+            var dateString = now.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+            document.getElementById('time').innerText = timeString;
+            document.getElementById('date').innerText = dateString;
         }
         setInterval(updateClock, 1000);
         updateClock();
 
-        // --- Sidebar Rotation ---
-        const infoDiv = document.getElementById('info-container');
-        settings.infoItems.forEach((text, i) => {
-            const div = document.createElement('div');
+        var infoDiv = document.getElementById('info-container');
+        for (var i = 0; i < settings.infoItems.length; i++) {
+            var div = document.createElement('div');
             div.className = 'info-item' + (i === 0 ? ' active' : '');
-            div.innerText = text;
+            div.innerText = settings.infoItems[i];
             infoDiv.appendChild(div);
-        });
+        }
 
-        let curIdx = 0;
-        const items = document.querySelectorAll('.info-item');
-        setInterval(() => {
-            items[curIdx].classList.remove('active');
+        var curIdx = 0;
+        var items = document.querySelectorAll('.info-item');
+        setInterval(function() {
+            items[curIdx].className = 'info-item';
             curIdx = (curIdx + 1) % items.length;
-            items[curIdx].classList.add('active');
+            items[curIdx].className = 'info-item active';
         }, settings.rotationSpeed);
 
-        // --- Welcome Overlay Logic ---
         function triggerWelcome() {
-            const overlay = document.getElementById('welcome-overlay');
+            var overlay = document.getElementById('welcome-overlay');
             overlay.style.display = 'flex';
-            setTimeout(() => { overlay.style.opacity = '1'; }, 50);
-            setTimeout(() => { 
+            setTimeout(function() { overlay.style.opacity = '1'; }, 50);
+            setTimeout(function() { 
                 overlay.style.opacity = '0';
-                setTimeout(() => { overlay.style.display = 'none'; }, 1500);
+                setTimeout(function() { overlay.style.display = 'none'; }, 1500);
             }, settings.welcomeDuration);
         }
         setInterval(triggerWelcome, settings.welcomeInterval);
 
-        // --- Anti-Screensaver Focus Bouncer ---
-        setInterval(() => {
-            const bouncer = document.getElementById('tv-focus-bouncer');
+        setInterval(function() {
+            var bouncer = document.getElementById('tv-focus-bouncer');
             if (bouncer) {
                 bouncer.focus();
-                setTimeout(() => { bouncer.blur(); }, 100);
+                setTimeout(function() { bouncer.blur(); }, 100);
             }
         }, 60000);
-
-        document.addEventListener('visibilitychange', async () => {
-            if (wakeLock !== null && document.visibilityState === 'visible') {
-                await requestWakeLock();
-            }
-        });
     </script>
 </body>
 </html>
