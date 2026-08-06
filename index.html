@@ -1,30 +1,311 @@
-from flask import Flask, jsonify
-from flask_cors import CORS
-import yt_dlp
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Summit Performance Rehab & Wellness Centre</title>
+    <style>
+        :root {
+            --summit-navy: #122442; 
+            --summit-green: #76b72a;
+            --sidebar-width: 25vw;
+            --topbar-height: 20vh;
+            --bg-color: #ffffff;
+        }
 
-app = Flask(__name__)
-CORS(app)
+        body, html {
+            margin: 0; padding: 0; height: 100%; overflow: hidden;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+        }
 
-@app.route('/playlist/<playlist_id>')
-def get_playlist(playlist_id):
-    ydl_opts = {'extract_flat': 'in_playlist', 'quiet': True}
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(f'https://www.youtube.com/playlist?list={playlist_id}', download=False)
-            ids = [entry['id'] for entry in info.get('entries', []) if entry]
-            return jsonify({'videoIds': ids})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        /* --- THE TV "STAY ALIVE" NOISE LAYER --- */
+        #tv-heartbeat {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 9999;
+            opacity: 0.02;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            animation: noise-shift 0.2s infinite;
+        }
 
-@app.route('/stream/<video_id>')
-def get_stream(video_id):
-    ydl_opts = {'format': 'best[ext=mp4]/best', 'quiet': True}
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(f'https://www.youtube.com/watch?v={video_id}', download=False)
-            return jsonify({'url': info['url']})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        @keyframes noise-shift {
+            0% { transform: translate(0,0); }
+            10% { transform: translate(-1%,-1%); }
+            20% { transform: translate(1%,1%); }
+            30% { transform: translate(-2%,1%); }
+            100% { transform: translate(0,0); }
+        }
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+        /* --- INVISIBLE FOCUS BOUNCER --- */
+        #tv-focus-bouncer { 
+            position: absolute; 
+            left: -9999px; 
+            top: -9999px; 
+            opacity: 0; 
+        }
+
+        /* --- START OVERLAY --- */
+        #start-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: var(--summit-navy); z-index: 100000;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #start-btn {
+            padding: 25px 50px; font-size: 2.2rem; background: var(--summit-green);
+            color: white; border: none; border-radius: 12px; font-weight: bold;
+            cursor: pointer; text-transform: uppercase;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: var(--sidebar-width) 1fr;
+            grid-template-rows: var(--topbar-height) 1fr;
+            height: 100vh; width: 100vw;
+            background-color: white;
+            position: relative;
+        }
+
+        .top-bar {
+            grid-column: 1 / span 2;
+            background-color: white;
+            display: flex; align-items: center; justify-content: center;
+            border-bottom: 8px solid var(--summit-green);
+            z-index: 20;
+            transform: translate3d(0,0,0);
+        }
+
+        .top-bar img { height: 100%; width: auto; object-fit: contain; transform: scale(1.2); }
+
+        .sidebar {
+            background-color: white;
+            padding: 40px 30px; border-right: 8px solid var(--summit-navy);
+            display: flex; flex-direction: column; position: relative; z-index: 10;
+            transform: translate3d(0,0,0);
+        }
+
+        .sidebar h2 { 
+            font-size: 1.8rem; color: var(--summit-navy); text-transform: uppercase;
+            border-bottom: 5px solid var(--summit-green); padding-bottom: 12px; margin-bottom: 40px;
+        }
+
+        .info-item {
+            font-size: 2.4rem; color: var(--summit-navy); line-height: 1.4; font-weight: 600;
+            position: absolute; top: 160px; left: 30px; right: 30px;
+            opacity: 0; transition: opacity 1s ease-in-out;
+            border-left: 12px solid var(--summit-green); padding-left: 25px;
+        }
+
+        .info-item.active { opacity: 1; }
+
+        #clock-container {
+            position: absolute; bottom: 40px; left: 30px; width: 85%;
+            border-top: 5px solid var(--summit-navy); padding-top: 15px;
+        }
+
+        #time { font-size: 3.5rem; font-weight: 800; color: var(--summit-navy); display: block; }
+        #date { font-size: 1.3rem; color: var(--summit-green); text-transform: uppercase; font-weight: 700; letter-spacing: 2px; }
+
+        .video-content { background-color: #000; position: relative; overflow: hidden; }
+        
+        /* Native HTML5 Video Element */
+        #tv-player { width: 100%; height: 100%; border: none; object-fit: cover; }
+
+        /* --- WELCOME OVERLAY --- */
+        #welcome-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: white; display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+            z-index: 99999; opacity: 0; transition: opacity 1.5s ease-in-out;
+        }
+
+        #welcome-overlay h1 { 
+            font-size: 5.5rem; color: var(--summit-navy); 
+            text-transform: uppercase; letter-spacing: 4px;
+            margin-top: 15vh; margin-bottom: 0;
+        }
+
+        #welcome-overlay img { width: 95%; max-height: 85vh; object-fit: contain; margin-top: -5vh; }
+    </style>
+</head>
+<body>
+
+    <div id="tv-heartbeat"></div>
+
+    <input type="text" id="tv-focus-bouncer" tabindex="-1">
+
+    <div id="start-overlay">
+        <button id="start-btn" onclick="initDisplay()">Start Summit Display</button>
+    </div>
+
+    <div id="welcome-overlay">
+        <h1>WELCOME TO</h1>
+        <img src="summitlogo.png" alt="Summit Logo">
+    </div>
+
+    <div class="container">
+        <div class="top-bar">
+            <img src="summitlogo.png" alt="Summit Logo">
+        </div>
+        <div class="sidebar">
+            <h2>Information</h2>
+            <div id="info-container"></div>
+            <div id="clock-container">
+                <span id="time"></span>
+                <span id="date"></span>
+            </div>
+        </div>
+        <div class="video-content">
+            <video id="tv-player" autoplay playsinline></video>
+        </div>
+    </div>
+
+    <script>
+        // Uses older syntax ("var") for optimal Smart TV browser compatibility
+        var settings = {
+            rotationSpeed: 8000,    
+            welcomeInterval: 600000, 
+            welcomeDuration: 15000,  
+            playlistId: 'PLoXrf5exDo_qjKr7mbyyacKxD0zC57ej7',
+            backendUrl: 'https://summittv.onrender.com',
+            infoItems: [
+                "Summit Performance Rehab & Wellness Centre",
+                "Please check in at the front desk.",
+                "Reach Your Health Summit Here",
+                "Transforming Lives Through Hands-On Care",
+                "Home of Steady State Wellness",
+                "Follow us on Instagram! @summit_performance_rehab", 
+                "Follow us on Instagram! @steadystate_ck",
+                "Vote for us on CommunityVotes Chatham-Kent!"
+            ]
+        };
+
+        var playlistIds = [];
+        var currentVideoIndex = 0;
+        var videoPlayer = document.getElementById('tv-player');
+
+        videoPlayer.addEventListener('ended', moveToNext);
+        videoPlayer.addEventListener('error', function() {
+            console.warn("Video stream playback error, attempting next...");
+            moveToNext();
+        });
+
+        function initDisplay() {
+            document.getElementById('start-overlay').style.display = 'none';
+            triggerWelcome();
+            loadPlaylist(); 
+        }
+
+        function loadPlaylist() {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", settings.backendUrl + "/playlist/" + settings.playlistId, true);
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        try {
+                            var data = JSON.parse(xhr.responseText);
+                            if (data.videoIds && data.videoIds.length > 0) {
+                                playlistIds = data.videoIds;
+                                playNextVideo();
+                            } else {
+                                setTimeout(loadPlaylist, 10000);
+                            }
+                        } catch (e) {
+                            setTimeout(loadPlaylist, 10000);
+                        }
+                    } else {
+                        setTimeout(loadPlaylist, 10000);
+                    }
+                }
+            };
+            xhr.send();
+        }
+
+        function playNextVideo() {
+            if (playlistIds.length === 0) return;
+            var videoId = playlistIds[currentVideoIndex];
+            
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", settings.backendUrl + "/stream/" + videoId, true);
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        try {
+                            var data = JSON.parse(xhr.responseText);
+                            if (data.url) {
+                                videoPlayer.src = data.url;
+                                var playPromise = videoPlayer.play();
+                                if (playPromise !== undefined) {
+                                    playPromise.catch(function(error) {
+                                        console.warn("Autoplay block:", error);
+                                    });
+                                }
+                            } else {
+                                setTimeout(moveToNext, 1000);
+                            }
+                        } catch (e) {
+                            setTimeout(moveToNext, 1000);
+                        }
+                    } else {
+                        setTimeout(moveToNext, 1000);
+                    }
+                }
+            };
+            xhr.send();
+        }
+
+        function moveToNext() {
+            currentVideoIndex = (currentVideoIndex + 1) % playlistIds.length;
+            if (currentVideoIndex === 0) {
+                loadPlaylist();
+            } else {
+                playNextVideo();
+            }
+        }
+
+        function updateClock() {
+            var now = new Date();
+            var timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+            var dateString = now.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+            document.getElementById('time').innerText = timeString;
+            document.getElementById('date').innerText = dateString;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        var infoDiv = document.getElementById('info-container');
+        for (var i = 0; i < settings.infoItems.length; i++) {
+            var div = document.createElement('div');
+            div.className = 'info-item' + (i === 0 ? ' active' : '');
+            div.innerText = settings.infoItems[i];
+            infoDiv.appendChild(div);
+        }
+
+        var curIdx = 0;
+        var items = document.querySelectorAll('.info-item');
+        setInterval(function() {
+            items[curIdx].className = 'info-item';
+            curIdx = (curIdx + 1) % items.length;
+            items[curIdx].className = 'info-item active';
+        }, settings.rotationSpeed);
+
+        function triggerWelcome() {
+            var overlay = document.getElementById('welcome-overlay');
+            overlay.style.display = 'flex';
+            setTimeout(function() { overlay.style.opacity = '1'; }, 50);
+            setTimeout(function() { 
+                overlay.style.opacity = '0';
+                setTimeout(function() { overlay.style.display = 'none'; }, 1500);
+            }, settings.welcomeDuration);
+        }
+        setInterval(triggerWelcome, settings.welcomeInterval);
+
+        setInterval(function() {
+            var bouncer = document.getElementById('tv-focus-bouncer');
+            if (bouncer) {
+                bouncer.focus();
+                setTimeout(function() { bouncer.blur(); }, 100);
+            }
+        }, 60000);
+    </script>
+</body>
+</html>
